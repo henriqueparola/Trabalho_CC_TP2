@@ -31,10 +31,11 @@ public class ReliableConnection {
         // Recebe-se um Frame e não dados
         byte dataIn[] = new byte[MTU + 4];
         byte frameOut[];
+        int size = 0;
 
 
-        while (dis.read(dataOut) != -1) {
-            ConnectionFrame outFrame = new ConnectionFrame(seq++, dataOut.length, dataOut);
+        while ((size = dis.read(dataOut)) != -1) {
+            ConnectionFrame outFrame = new ConnectionFrame(seq++, size, dataOut);
             frameOut = outFrame.serialize();
             DatagramPacket outPacket = new DatagramPacket(frameOut,
                                                         frameOut.length,
