@@ -11,17 +11,13 @@ import java.net.SocketException;
 public class ReliableConnection {
     private DatagramSocket socket;
     private final int MTU = 1400; // TODO: Verificar o valor certo
-    private InetAddress peerSenderAddress;
-    private InetAddress peerReceiverAddress;
-    private int peerSenderPort;
-    private int peerReceiverPort;
+    private InetAddress peerAddress;
+    private int peerPort;
     private int seq;
 
-    public ReliableConnection(InetAddress inetPeer1, InetAddress inetPeer2, int portPeer1, int portPeer2) throws SocketException {
-        this.peerSenderAddress = inetPeer1;
-        this.peerReceiverAddress = inetPeer2;
-        this.peerSenderPort = portPeer1;
-        this.peerReceiverPort = portPeer2;
+    public ReliableConnection(InetAddress inetPeer1, int portPeer1) throws SocketException {
+        this.peerAddress = inetPeer1;
+        this.peerPort = portPeer1;
         this.socket = new DatagramSocket();
         this.seq = 0;
     }
@@ -42,8 +38,8 @@ public class ReliableConnection {
             frameOut = outFrame.serialize();
             DatagramPacket outPacket = new DatagramPacket(frameOut,
                                                         frameOut.length,
-                                                        this.peerReceiverAddress,
-                                                        this.peerReceiverPort);
+                                                        this.peerAddress,
+                                                        this.peerPort);
             socket.send(outPacket);
 
 
@@ -72,8 +68,8 @@ public class ReliableConnection {
                 byte []frameOut = outFrame.serialize();
                 DatagramPacket outPacket = new DatagramPacket(frameOut,
                                                             frameOut.length,
-                                                            this.peerSenderAddress,
-                                                            this.peerSenderPort);
+                                                            this.peerAddress,
+                                                            this.peerPort);
             }
         }
         return bos.toByteArray();

@@ -25,6 +25,7 @@ public class Server implements Runnable{
                 System.out.println("Recebi Sync!");
                 // TODO parser do OPCODE (Sync ou Read)
                 // Cada Thread Cria sua própria porta de dados para simular a ideia de "conexão" com o cliente
+                // new thread multiplexer (ficheiros[])
                 Thread t = new Thread(new StructReply(packet.getAddress(), packet.getPort(), folderToSync));
 
                 t.start();

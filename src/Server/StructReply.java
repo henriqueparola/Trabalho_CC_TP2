@@ -1,8 +1,12 @@
 package Server;
 
+import Connection.ConnectionFrame;
+import Connection.ReliableConnection;
+
 import java.awt.*;
 import java.net.*;
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,7 +18,7 @@ import java.util.stream.Stream;
 public class StructReply implements Runnable {
     private InetAddress destAdress;
     private int destPort;
-    private String folderToSync;
+    static private String folderToSync;
 
     public StructReply(InetAddress destAdress, int destPort, String folderToSync) throws SocketException {
         this.folderToSync = folderToSync;
@@ -39,28 +43,37 @@ public class StructReply implements Runnable {
         List<Path> paths;
         paths = walk.filter(Files::isRegularFile).collect(Collectors.toList());
 
+        byte[] data = new byte[0];
         try {
-            DatagramSocket datagramSocket = new DatagramSocket(); // Porta de transferência de dados que vai simular "comexão" com o cliente
-            for (Path p : paths){
-                // TODO Otimizar obordagem. Inicialmente estamos a enviar um path por pacote.
-                // TODO Adicionar meta-dados.
-                DatagramPacket datagramPacketAnswer = new DatagramPacket(
-                        p.toString().substring(folderToSync.length() + 3).getBytes(StandardCharsets.UTF_8),
-                        p.toString().substring(folderToSync.length() + 3).getBytes(StandardCharsets.UTF_8).length,
-                        this.destAdress,
-                        this.destPort
-                );
-                datagramSocket.send(datagramPacketAnswer);
-
-                // TODO Controlo de erros será aqui
-                datagramSocket.receive(new DatagramPacket(
-                        bufAck,
-                        bufAck.length
-                ));
-            }
+            data = serialize(paths);
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        String data2 = new String(data, StandardCharsets.UTF_8);
+        //System.out.printf("Array Result: " + data2);
+
+        try {
+            ReliableConnection rb = new ReliableConnection(destAdress,destPort);
+            rb.send(data);
+        } catch (SocketException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    static byte[] serialize(List <Path> paths) throws IOException {
+        ByteArrayOutputStream ba = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(ba);
+
+        dos.writeInt(paths.size());
+        for (Path path : paths){
+            dos.writeUTF(path.toString().substring(folderToSync.length() + 3));
+        }
+        dos.close();
+        return ba.toByteArray();
     }
 
 }

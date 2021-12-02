@@ -1,8 +1,12 @@
 package Client;
 
+import Connection.ReliableConnection;
+
 import java.net.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 public class StructRequest implements Runnable{
     private String ipToSync;
@@ -32,16 +36,11 @@ public class StructRequest implements Runnable{
             DatagramPacket syncAnswerPacket = new DatagramPacket(bufData,bufData.length);
             while(true) {
                 socket.receive(syncAnswerPacket);
+                List <String> list = deserialize(syncAnswerPacket.getData());
+                System.out.println(list.toString());
 
-                String data = new String(syncAnswerPacket.getData(), StandardCharsets.UTF_8);
-                System.out.println(data);
-
-                socket.send(new DatagramPacket(
-                        bufAck,
-                        bufAck.length,
-                        InetAddress.getByName(ipToSync),
-                        syncAnswerPacket.getPort()) // Atenção aqui porque não é mais a porta de atendimento que está a ser usada
-                );
+                ReliableConnection rb = new ReliableConnection(InetAddress.getByName(ipToSync),syncAnswerPacket.getPort());
+                // Mandar Ack
             }
 
         }catch (SocketException | UnknownHostException e) {
@@ -49,5 +48,20 @@ public class StructRequest implements Runnable{
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    static List<String> deserialize(byte[] bytes) throws IOException {
+        List<String> listPaths = new ArrayList<>();
+
+        ByteArrayInputStream ba = new ByteArrayInputStream(bytes);
+        DataInputStream dos = new DataInputStream(ba);
+
+        int quant = dos.readInt();
+
+        for(int i = 0; i < quant; i++){
+            listPaths.add(dos.readUTF());
+        }
+
+        return listPaths;
     }
 }
