@@ -34,7 +34,7 @@ public class ReliableConnection {
 
 
         while (dis.read(dataOut) != -1) {
-            ConnectionFrame outFrame = new ConnectionFrame(seq++, dataOut);
+            ConnectionFrame outFrame = new ConnectionFrame(seq++, dataOut.length, dataOut);
             frameOut = outFrame.serialize();
             DatagramPacket outPacket = new DatagramPacket(frameOut,
                                                         frameOut.length,
@@ -42,8 +42,8 @@ public class ReliableConnection {
                                                         this.peerPort);
             socket.send(outPacket);
 
-
             DatagramPacket inPacket = new DatagramPacket(dataIn, dataIn.length);
+
             socket.receive(inPacket);
             ConnectionFrame inFrame = ConnectionFrame.deserealize(inPacket.getData());
             //Sei que recebi um ack, no entanto convém verificar se data é null ou se data size = 0;
@@ -52,19 +52,23 @@ public class ReliableConnection {
     }
 
     public byte[] receive() throws IOException {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream(MTU);
-        byte dataIn[] = new byte[MTU + 4];
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(MTU);
+        DataOutputStream dos  = new DataOutputStream(new BufferedOutputStream(baos));
+
+        byte dataIn[] = new byte[ConnectionFrame.MTU];
         // provavelmente mudar isto
         byte dataOut[] = new  byte[0];
         DatagramPacket inPacket = new DatagramPacket(dataIn, dataIn.length);
         boolean flag = true;
         while (flag) {
             socket.receive(inPacket);
+            // Verificar a integridade do que se recebeu
             ConnectionFrame inFrame = ConnectionFrame.deserealize(inPacket.getData());
-            if (inFrame.data.length == 0) flag = false;
+
+            if (inFrame.dataLen == 0) flag = false;
             else {
-                bos.write(inFrame.data);
-                ConnectionFrame outFrame = new ConnectionFrame(0, dataOut);
+                dos.write(inFrame.data);
+                ConnectionFrame outFrame = new ConnectionFrame(0, 0, null);
                 byte []frameOut = outFrame.serialize();
                 DatagramPacket outPacket = new DatagramPacket(frameOut,
                                                             frameOut.length,
@@ -72,7 +76,7 @@ public class ReliableConnection {
                                                             this.peerPort);
             }
         }
-        return bos.toByteArray();
+        return baos.toByteArray();
     }
 
 
