@@ -103,34 +103,34 @@ public class ReliableConnection {
         ByteArrayOutputStream baos = new ByteArrayOutputStream(MTU);
         DataOutputStream dos  = new DataOutputStream(new BufferedOutputStream(baos));
 
-        byte dataIn[] = new byte[ConnectionFrame.MTU];
-        // provavelmente mudar isto
-        byte dataOut[] = new  byte[0];
-        DatagramPacket inPacket = new DatagramPacket(dataIn, dataIn.length);
         boolean flag = true;
+        ConnectionFrame inFrame;
         while (flag) {
-            socket.receive(inPacket);
-            // Verificar a integridade do que se recebeu
-
-            ConnectionFrame inFrame = ConnectionFrame.deserealize(inPacket.getData());
-
-            InetAddress senderAddress = inPacket.getAddress();
-            int senderPort = inPacket.getPort();
-
-
-            if (inFrame.dataLen == 0) flag = false;
+            inFrame = rdtRcvPckt();
+            if (inFrame.dataLen <= this.MTU) flag = false;
             else {
-                dos.write(inFrame.data);
-                ConnectionFrame outFrame = new ConnectionFrame(0, 0, null);
-                byte []frameOut = outFrame.serialize();
-                DatagramPacket outPacket = new DatagramPacket(frameOut,
-                                                            frameOut.length,
-                                                            senderAddress,
-                                                            senderPort);
-                socket.send(outPacket);
+                if (notCurrupt(inFrame) && validSeq(inFrame)) {
+                    dos.write(inFrame.data);
+                    this.seq++;
+                }
             }
+            sendAck();
         }
         return baos.toByteArray();
+    }
+
+    private void sendAck() throws IOException {
+        ConnectionFrame ackFrame = new ConnectionFrame(this.seq, 0, null);
+        byte[] dataOut = ackFrame.serialize();
+        DatagramPacket outPacket = new DatagramPacket(dataOut,
+                                                    dataOut.length,
+                                                    this.peerAddress,
+                                                    this.peerPort);
+        socket.send(outPacket);
+    }
+
+    private boolean validSeq(ConnectionFrame inFrame) {
+        return this.seq == inFrame.tag;
     }
 
 
