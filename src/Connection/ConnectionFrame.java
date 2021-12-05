@@ -7,7 +7,7 @@ public class ConnectionFrame {
     public final int tag;
     public final int dataLen;
     public final byte[] data;
-    public static final int MTU = 1404;
+    public static final int MTU = 1408;
 
 
     public ConnectionFrame(int tag, int dataLen, byte[] data) {
@@ -22,7 +22,11 @@ public class ConnectionFrame {
         DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(baos));
         dos.writeInt(this.tag);
         dos.writeInt(this.dataLen);
-        dos.write(this.data);
+        if (this.dataLen > 0) {
+            dos.write(this.data);
+        }
+        dos.close();
+        baos.close();
 
         return baos.toByteArray();
     }
@@ -39,6 +43,8 @@ public class ConnectionFrame {
             data =  new byte[dataLen];
             dis.read(data);
         }
+        bais.close();
+        dis.close();
 
         return new ConnectionFrame(tag, dataLen, data);
     }
