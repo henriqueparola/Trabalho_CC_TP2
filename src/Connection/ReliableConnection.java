@@ -7,7 +7,10 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.sql.Time;
 import java.util.concurrent.*;
+
+import static java.lang.Thread.sleep;
 
 public class ReliableConnection {
     private DatagramSocket socket;
@@ -36,33 +39,37 @@ public class ReliableConnection {
         final int maxTries = 5;
         // para saber o tamanho lido da stream
         int size = 0;
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<ConnectionFrame> future;
         Callable<ConnectionFrame> callable = new Callable<ConnectionFrame>() {
             @Override
-            public ConnectionFrame call() throws Exception {
-                return rdtRcvPckt();
+            public ConnectionFrame call() throws IOException {
+                ConnectionFrame r = rdtRcvPckt();
+                if (Thread.interrupted()) {
+                    socket.setSoTimeout(1);
+                }
+                return r;
             }
         };
 
 
 
-        ExecutorService executor = Executors.newSingleThreadExecutor();
 
         while ((size = dis.read(dataOut)) != -1) {
-            udtSendPckt(size, dataOut, this.seq);
-            System.out.println("ciclo");
             while (!received) {
-                Future<ConnectionFrame> future = executor.submit(callable);
+                udtSendPckt(size, dataOut, this.seq);
+                future = executor.submit(callable);
                 try {
-                    frameIn = future.get();
+
+                    frameIn = future.get(1500, TimeUnit.MILLISECONDS);
                     if (notCurrupt(frameIn) && isAck(frameIn, this.seq + 1)) {
                         received = true;
-                        System.out.println("received = " + received);
                         this.seq++;
                     }
-                } catch (InterruptedException | ExecutionException e) {
 
-                }finally {
+                } catch (InterruptedException | ExecutionException | TimeoutException e) {
                     future.cancel(true);
+                    socket.setSoTimeout(0);
                 }
 
             }
@@ -72,12 +79,11 @@ public class ReliableConnection {
             if(size < MTU) {
                 bais.close();
                 dis.close();
+                executor.shutdownNow();
             }
 
         }
 
-        System.out.println("hjhjhjh");
-        executor.shutdownNow();
 
     }
 
@@ -86,8 +92,7 @@ public class ReliableConnection {
     }
 
     private boolean isAck(ConnectionFrame frame, int seq) {
-        //return frame.tag == seq && frame.dataLen == 0;
-        return true;
+        return frame.tag == seq && frame.dataLen == 0;
     }
 
     private boolean notCurrupt(ConnectionFrame frame) {
@@ -101,7 +106,6 @@ public class ReliableConnection {
         byte[] frameOut;
         frameOut = outFrame.serialize();
         outFrame = ConnectionFrame.deserealize(frameOut);
-        System.out.println("size" + outFrame.dataLen);
         frameOut = outFrame.serialize();
         DatagramPacket outPacket = new DatagramPacket(frameOut,
                                                     frameOut.length,
@@ -119,6 +123,7 @@ public class ReliableConnection {
             socket.receive(inPacket);
 
         ConnectionFrame inFrame = ConnectionFrame.deserealize(inPacket.getData());
+
         return inFrame;
     }
 
@@ -131,16 +136,15 @@ public class ReliableConnection {
 
         while (flag) {
             inFrame = rdtRcvPckt();
-            System.out.println("Recebi pacote " + inFrame.dataLen + "this.MTU = " + this.MTU);
+
             if (inFrame.dataLen < this.MTU) flag = false;
 
             if (notCurrupt(inFrame) && validSeq(inFrame)) {
-                System.out.println("wrote");
                 dos.write(inFrame.data);
                 this.seq++;
             }
+                sendAck();
         }
-            sendAck();
 
         dos.close();
         baos.close();
@@ -149,7 +153,6 @@ public class ReliableConnection {
 
     private void sendAck() throws IOException {
         ConnectionFrame ackFrame = new ConnectionFrame(this.seq, 0, null);
-        System.out.println("Mandei ack");
         byte[] dataOut = ackFrame.serialize();
         DatagramPacket outPacket = new DatagramPacket(dataOut,
                                                     dataOut.length,
@@ -159,7 +162,7 @@ public class ReliableConnection {
     }
 
     private boolean validSeq(ConnectionFrame inFrame) {
-        return true;
+        return inFrame.tag == this.seq;
     }
 
 
