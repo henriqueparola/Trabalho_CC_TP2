@@ -20,16 +20,13 @@ public class Server implements Runnable{
             DatagramPacket packet = new DatagramPacket(buf, buf.length);
 
             boolean running = true;
-            while (running) {
-                socket.receive(packet);
-                System.out.println("Recebi Sync!");
-                // TODO parser do OPCODE (Sync ou Read)
-                // Cada Thread Cria sua própria porta de dados para simular a ideia de "conexão" com o cliente
-                // new thread multiplexer (ficheiros[])
-                Thread t = new Thread(new StructReply(packet.getAddress(), packet.getPort(), folderToSync));
-
-                t.start();
-            }
+            //while (running) {
+            //    socket.receive(packet);
+            //    System.out.println("Recebi Sync!");
+            // new thread multiplexer (ficheiros[])
+            Thread t = new Thread(new StructReply(packet.getAddress(), packet.getPort(), folderToSync));
+            t.start();
+            //}
         } catch (SocketException e) {
             e.printStackTrace();
         } catch (IOException e) {

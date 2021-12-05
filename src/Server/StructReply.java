@@ -1,5 +1,6 @@
 package Server;
 
+import Client.MetaData;
 import Connection.ConnectionFrame;
 import Connection.ReliableConnection;
 
@@ -11,6 +12,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -42,38 +45,74 @@ public class StructReply implements Runnable {
 
         List<Path> paths;
         paths = walk.filter(Files::isRegularFile).collect(Collectors.toList());
+        List<MetaData> metaDataPaths = paths.stream().map(p -> getMetaData(p)).toList();
+
+        for (MetaData metaData: metaDataPaths){
+            System.out.println("Meta a enviar: " + metaData.getFilePath()  + " > " + metaData.getSize() + " > " + metaData.getCreationDate() + " > " + metaData.getModified() + "\n");
+        }
 
         byte[] data = new byte[0];
         try {
-            data = serialize(paths);
+            data = serialize(metaDataPaths);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        String data2 = new String(data, StandardCharsets.UTF_8);
-        //System.out.printf("Array Result: " + data2);
+        System.out.println("\n---------------- New ----------------------------\n");
 
-        try {
-            ReliableConnection rb = new ReliableConnection(destAdress,destPort);
-            rb.send(data);
-        } catch (SocketException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        /* Deserialize example */
+        List<MetaData> metaDataPaths2 = new ArrayList<>(deserialize(data));
+        for (MetaData metaData: metaDataPaths2){
+            System.out.println("Meta recebido: " + metaData.getFilePath()  + " > " + metaData.getSize() + " > " + metaData.getCreationDate() + " > " + metaData.getModified() + "\n");
         }
-
     }
 
-    static byte[] serialize(List <Path> paths) throws IOException {
+    /*
+    serialize a List of paths
+     */
+    static byte[] serialize(List <MetaData> metaPaths) throws IOException {
         ByteArrayOutputStream ba = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(ba);
 
-        dos.writeInt(paths.size());
-        for (Path path : paths){
-            dos.writeUTF(path.toString().substring(folderToSync.length() + 3));
+        dos.writeInt(metaPaths.size());
+
+        for (MetaData metaPath : metaPaths){
+            dos.write(metaPath.serialize());
         }
+
         dos.close();
         return ba.toByteArray();
+    }
+
+    static List<MetaData> deserialize(byte[] bytes) {
+        List<MetaData> metaDataPaths = new ArrayList<>();
+        ByteArrayInputStream ba = new ByteArrayInputStream(bytes);
+        DataInputStream dos = new DataInputStream(ba);
+
+        try{
+            int quant = dos.readInt();
+            for(int i = 0; i < quant; i++){
+                MetaData metaData = new MetaData();
+                metaData.deserialize(dos);
+                metaDataPaths.add(metaData);
+            }
+            dos.close();
+        }catch (IOException e){
+
+        }
+        return metaDataPaths;
+    }
+
+    /*
+    Get the MetaData from a path
+     */
+    private MetaData getMetaData(Path path){
+        try {
+            BasicFileAttributes attr = Files.readAttributes(path, BasicFileAttributes.class);
+            return new MetaData(path.toString(),attr.size(),attr.creationTime().toMillis(),attr.lastModifiedTime().toMillis());
+        }catch (IOException e){
+        }
+        return null;
     }
 
 }
