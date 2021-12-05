@@ -19,13 +19,14 @@ public class ReliableConnection {
     public ReliableConnection(InetAddress inetPeer1, int portPeer1) throws SocketException {
         this.peerAddress = inetPeer1;
         this.peerPort = portPeer1;
-        this.socket = new DatagramSocket();
+        this.socket = new DatagramSocket(5000);
         this.seq = 0;
     }
     public void send(byte[] data) throws IOException {
         // Se data for maior que MTU é necessário fazer a divisão por vários pacotes
         // Como agora estou a fazer stop and wait preciso de receber um ack para cada pacote enviado
-       DataInputStream  dis = new DataInputStream(new BufferedInputStream(new ByteArrayInputStream(data)));
+        ByteArrayInputStream bais = new ByteArrayInputStream(data);
+       DataInputStream  dis = new DataInputStream(new BufferedInputStream(bais));
         byte dataOut[] = new byte[MTU];
         // Recebe-se um Frame e não dados
         ConnectionFrame frameIn;
@@ -35,33 +36,49 @@ public class ReliableConnection {
         final int maxTries = 5;
         // para saber o tamanho lido da stream
         int size = 0;
-
-
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<ConnectionFrame> future = executor.submit(new Callable<ConnectionFrame>() {
+        Callable<ConnectionFrame> callable = new Callable<ConnectionFrame>() {
             @Override
             public ConnectionFrame call() throws Exception {
                 return rdtRcvPckt();
             }
-        });
+        };
+
+
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
 
         while ((size = dis.read(dataOut)) != -1) {
             udtSendPckt(size, dataOut, this.seq);
-
-            for (int i = 0; i < maxTries && received; i++) {
+            System.out.println("ciclo");
+            while (!received) {
+                Future<ConnectionFrame> future = executor.submit(callable);
                 try {
-                    frameIn = future.get(1, TimeUnit.SECONDS);
+                    frameIn = future.get();
                     if (notCurrupt(frameIn) && isAck(frameIn, this.seq + 1)) {
                         received = true;
+                        System.out.println("received = " + received);
                         this.seq++;
                     }
-                } catch (TimeoutException | InterruptedException | ExecutionException e) {
+                } catch (InterruptedException | ExecutionException e) {
+
+                }finally {
                     future.cancel(true);
-                    udtSendPckt(size, dataOut, seq);
                 }
+
+            }
+
+            received = false;
+
+            if(size < MTU) {
+                bais.close();
+                dis.close();
             }
 
         }
+
+        System.out.println("hjhjhjh");
+        executor.shutdownNow();
+
     }
 
     private boolean sameRecipient(InetAddress address, int port) {
@@ -69,7 +86,8 @@ public class ReliableConnection {
     }
 
     private boolean isAck(ConnectionFrame frame, int seq) {
-        return frame.tag == seq && frame.dataLen == 0;
+        //return frame.tag == seq && frame.dataLen == 0;
+        return true;
     }
 
     private boolean notCurrupt(ConnectionFrame frame) {
@@ -78,7 +96,12 @@ public class ReliableConnection {
 
     private void udtSendPckt(int size, byte[] data, int seq) throws IOException {
         ConnectionFrame outFrame = new ConnectionFrame(seq, size, data);
+
+
         byte[] frameOut;
+        frameOut = outFrame.serialize();
+        outFrame = ConnectionFrame.deserealize(frameOut);
+        System.out.println("size" + outFrame.dataLen);
         frameOut = outFrame.serialize();
         DatagramPacket outPacket = new DatagramPacket(frameOut,
                                                     frameOut.length,
@@ -105,22 +128,28 @@ public class ReliableConnection {
 
         boolean flag = true;
         ConnectionFrame inFrame;
+
         while (flag) {
             inFrame = rdtRcvPckt();
-            if (inFrame.dataLen <= this.MTU) flag = false;
-            else {
-                if (notCurrupt(inFrame) && validSeq(inFrame)) {
-                    dos.write(inFrame.data);
-                    this.seq++;
-                }
+            System.out.println("Recebi pacote " + inFrame.dataLen + "this.MTU = " + this.MTU);
+            if (inFrame.dataLen < this.MTU) flag = false;
+
+            if (notCurrupt(inFrame) && validSeq(inFrame)) {
+                System.out.println("wrote");
+                dos.write(inFrame.data);
+                this.seq++;
             }
-            sendAck();
         }
+            sendAck();
+
+        dos.close();
+        baos.close();
         return baos.toByteArray();
     }
 
     private void sendAck() throws IOException {
         ConnectionFrame ackFrame = new ConnectionFrame(this.seq, 0, null);
+        System.out.println("Mandei ack");
         byte[] dataOut = ackFrame.serialize();
         DatagramPacket outPacket = new DatagramPacket(dataOut,
                                                     dataOut.length,
@@ -130,7 +159,7 @@ public class ReliableConnection {
     }
 
     private boolean validSeq(ConnectionFrame inFrame) {
-        return this.seq == inFrame.tag;
+        return true;
     }
 
 
