@@ -61,4 +61,12 @@ public class MetaData {
 
         }
     }
+
+    public boolean equals(MetaData metaData){
+        if ((this.size == metaData.size) &&
+                (this.modifiedDate == metaData.modifiedDate) &&
+                (this.creationDate == metaData.creationDate) &&
+                (this.filePath.equals(metaData.getFilePath()))) return true;
+        return false;
+    }
 }

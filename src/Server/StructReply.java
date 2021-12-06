@@ -3,6 +3,7 @@ package Server;
 import Client.MetaData;
 import Connection.ConnectionFrame;
 import Connection.ReliableConnection;
+import Multiplex.ProtocolFrame;
 
 import java.awt.*;
 import java.net.*;
@@ -31,9 +32,6 @@ public class StructReply implements Runnable {
 
     @Override
     public void run() {
-        // OPCODE de ACK
-        byte[] bufAck = new byte[2];
-
         Path path = Paths.get("./" + folderToSync);
 
         Stream<Path> walk = null;
@@ -47,10 +45,6 @@ public class StructReply implements Runnable {
         paths = walk.filter(Files::isRegularFile).collect(Collectors.toList());
         List<MetaData> metaDataPaths = paths.stream().map(p -> getMetaData(p)).toList();
 
-        for (MetaData metaData: metaDataPaths){
-            System.out.println("Meta a enviar: " + metaData.getFilePath()  + " > " + metaData.getSize() + " > " + metaData.getCreationDate() + " > " + metaData.getModified() + "\n");
-        }
-
         byte[] data = new byte[0];
         try {
             data = serialize(metaDataPaths);
@@ -58,15 +52,16 @@ public class StructReply implements Runnable {
             e.printStackTrace();
         }
 
-        System.out.println("\n---------------- New ----------------------------\n");
-
-        /* Deserialize example */
-        List<MetaData> metaDataPaths2 = new ArrayList<>(deserialize(data));
-        for (MetaData metaData: metaDataPaths2){
-            System.out.println("Meta recebido: " + metaData.getFilePath()  + " > " + metaData.getSize() + " > " + metaData.getCreationDate() + " > " + metaData.getModified() + "\n");
+        try {
+            ReliableConnection rb = new ReliableConnection(this.destAdress,this.destPort);
+            ProtocolFrame pf = new ProtocolFrame((byte)0x3,data.length,data);
+            rb.send(pf.serialize());
+        } catch (SocketException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
-
     /*
     serialize a List of paths
      */

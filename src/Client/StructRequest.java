@@ -1,6 +1,7 @@
 package Client;
 
 import Connection.ReliableConnection;
+import Multiplex.ProtocolFrame;
 
 import java.net.*;
 import java.io.*;
@@ -19,49 +20,47 @@ public class StructRequest implements Runnable{
 
     @Override
     public void run() {
-        try{
-            // OPCODE de sincronização
-            byte[] buf = new byte[] {(byte)0x0, (byte)0x1};
-            // OPCODE de ACK
-            byte[] bufAck = new byte[]{(byte)0x0,(byte)0x2};
+        try {
+            ReliableConnection rb = new ReliableConnection(InetAddress.getByName(ipToSync), 5000);
+            ProtocolFrame pf2 = new ProtocolFrame((byte) 0x0,0,null);
+            rb.send(pf2.serialize());
 
-            // 5000 será a porta de atendimento padrão do nosso protocolo
-            DatagramPacket syncPacket = new DatagramPacket(buf,buf.length,InetAddress.getByName(ipToSync),5000);
-            DatagramSocket socket = new DatagramSocket();
+            int port = rb.socket.getLocalPort();
+            rb.close();
 
-            // Envio do pacote de sincronização para a porta de atendimento do computador a sincronizar
-            socket.send(syncPacket);
+            ReliableConnection rb2 = new ReliableConnection(port);
+            byte[] data = rb2.receive();
 
-            byte[] bufData = new byte[1500];
-            DatagramPacket syncAnswerPacket = new DatagramPacket(bufData,bufData.length);
-            while(true) {
-                socket.receive(syncAnswerPacket);
-                List <String> list = deserialize(syncAnswerPacket.getData());
-                System.out.println(list.toString());
+            ProtocolFrame pf = ProtocolFrame.deserialize(data);
+            List<MetaData> list = deserialize(pf.data);
 
-                ReliableConnection rb = new ReliableConnection(InetAddress.getByName(ipToSync),syncAnswerPacket.getPort());
-                // Mandar Ack
+            for (MetaData mData: list){
+                System.out.println(mData.getFilePath() + " > " + mData.size + " > " + mData.creationDate + " > " + mData.getModified());
             }
-
-        }catch (SocketException | UnknownHostException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (SocketException ex) {
+            ex.printStackTrace();
+        } catch (UnknownHostException ex) {
+            ex.printStackTrace();
+        } catch (IOException ex) {
+            ex.printStackTrace();
         }
     }
 
-    static List<String> deserialize(byte[] bytes) throws IOException {
-        List<String> listPaths = new ArrayList<>();
-
+    static List<MetaData> deserialize(byte[] bytes) {
+        List<MetaData> metaDataPaths = new ArrayList<>();
         ByteArrayInputStream ba = new ByteArrayInputStream(bytes);
         DataInputStream dos = new DataInputStream(ba);
 
-        int quant = dos.readInt();
-
-        for(int i = 0; i < quant; i++){
-            listPaths.add(dos.readUTF());
+        try{
+            int quant = dos.readInt();
+            for(int i = 0; i < quant; i++){
+                MetaData metaData = new MetaData();
+                metaData.deserialize(dos);
+                metaDataPaths.add(metaData);
+            }
+            dos.close();
+        }catch (IOException e){
         }
-
-        return listPaths;
+        return metaDataPaths;
     }
 }

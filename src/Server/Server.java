@@ -1,5 +1,8 @@
 package Server;
 
+import Client.FolderStruct;
+import Multiplex.ProtocolDemultiplexer;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -12,25 +15,9 @@ public class Server implements Runnable{
 
     @Override
     public void run() {
-        try{
-            // Porta de atendimento
-            DatagramSocket socket = new DatagramSocket(5000);
-
-            byte[] buf = new byte[256];
-            DatagramPacket packet = new DatagramPacket(buf, buf.length);
-
-            boolean running = true;
-            //while (running) {
-            //    socket.receive(packet);
-            //    System.out.println("Recebi Sync!");
-            // new thread multiplexer (ficheiros[])
-            Thread t = new Thread(new StructReply(packet.getAddress(), packet.getPort(), folderToSync));
-            t.start();
-            //}
-        } catch (SocketException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        FolderStruct fd = new FolderStruct();
+        // TODO Thread Http
+        Thread t = new Thread(new ProtocolDemultiplexer(fd,folderToSync));
+        t.start();
     }
 }

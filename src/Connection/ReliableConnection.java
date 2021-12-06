@@ -13,23 +13,38 @@ import java.util.concurrent.*;
 import static java.lang.Thread.sleep;
 
 public class ReliableConnection {
-    private DatagramSocket socket;
+    public DatagramSocket socket;
     private final int MTU = 1400; // TODO: Verificar o valor certo
-    private InetAddress peerAddress;
-    private int peerPort;
+    public InetAddress peerAddress;
+    public int peerPort;
     private int seq;
+
+    public ReliableConnection(int port,InetAddress inetPeer1, int portPeer1) throws SocketException {
+        this.peerAddress = inetPeer1;
+        this.peerPort = portPeer1;
+        this.socket = new DatagramSocket(port);
+        this.seq = 0;
+    }
 
     public ReliableConnection(InetAddress inetPeer1, int portPeer1) throws SocketException {
         this.peerAddress = inetPeer1;
         this.peerPort = portPeer1;
-        this.socket = new DatagramSocket(5000);
+        this.seq = 0;
+        this.socket = new DatagramSocket();
+    }
+
+    public ReliableConnection(int port) throws SocketException {
+        this.socket = new DatagramSocket(port);
+        this.peerAddress = null;
+        this.peerPort = -1;
         this.seq = 0;
     }
+
     public void send(byte[] data) throws IOException {
         // Se data for maior que MTU é necessário fazer a divisão por vários pacotes
         // Como agora estou a fazer stop and wait preciso de receber um ack para cada pacote enviado
         ByteArrayInputStream bais = new ByteArrayInputStream(data);
-       DataInputStream  dis = new DataInputStream(new BufferedInputStream(bais));
+        DataInputStream  dis = new DataInputStream(new BufferedInputStream(bais));
         byte dataOut[] = new byte[MTU];
         // Recebe-se um Frame e não dados
         ConnectionFrame frameIn;
@@ -52,10 +67,7 @@ public class ReliableConnection {
             }
         };
 
-
-
-
-        while ((size = dis.read(dataOut)) != -1) {
+        while ((size = dis.read(dataOut)) > 0) {
             while (!received) {
                 udtSendPckt(size, dataOut, this.seq);
                 future = executor.submit(callable);
@@ -77,14 +89,11 @@ public class ReliableConnection {
             received = false;
 
             if(size < MTU) {
-                bais.close();
-                dis.close();
                 executor.shutdownNow();
             }
-
         }
-
-
+        bais.close();
+        dis.close();
     }
 
     private boolean sameRecipient(InetAddress address, int port) {
@@ -119,6 +128,10 @@ public class ReliableConnection {
         DatagramPacket inPacket = new DatagramPacket(dataIn, dataIn.length);
         socket.receive(inPacket);
 
+        if(this.peerAddress == null && this.peerPort == -1){
+            this.peerAddress = inPacket.getAddress();
+            this.peerPort = inPacket.getPort();
+        }
         while(!sameRecipient(inPacket.getAddress(), inPacket.getPort()))
             socket.receive(inPacket);
 
@@ -146,8 +159,8 @@ public class ReliableConnection {
                 sendAck();
         }
 
-        dos.close();
         baos.close();
+        dos.close();
         return baos.toByteArray();
     }
 
@@ -165,5 +178,7 @@ public class ReliableConnection {
         return inFrame.tag == this.seq;
     }
 
-
+    public void close(){
+        this.socket.close();
+    }
 }
