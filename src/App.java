@@ -15,7 +15,7 @@ public class App {
         String folderToSync = args[0];
 
         Thread tServer = new Thread(new Server(folderToSync));
-        Thread tClient = new Thread(new Client(ipsToSync));
+        Thread tClient = new Thread(new Client(ipsToSync,folderToSync));
 
         tServer.start();
         tClient.start();
