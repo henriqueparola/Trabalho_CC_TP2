@@ -34,9 +34,7 @@ public class StructRequest implements Runnable{
             ProtocolFrame pf = ProtocolFrame.deserialize(data);
             List<MetaData> list = deserialize(pf.data);
 
-            for (MetaData mData: list){
-                System.out.println(mData.getFilePath() + " > " + mData.size + " > " + mData.creationDate + " > " + mData.getModified());
-            }
+            folderStruct.addList(ipToSync,list);
         } catch (SocketException ex) {
             ex.printStackTrace();
         } catch (UnknownHostException ex) {
