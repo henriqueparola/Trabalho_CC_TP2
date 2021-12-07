@@ -1,21 +1,25 @@
 package Client;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
 public class Client implements Runnable{
     private String[] ipsToSync;
+    private String folderToSync;
 
-    public Client(String[] ipsToSync){this.ipsToSync = ipsToSync;}
+    public Client(String[] ipsToSync,String folderToSync){
+        this.ipsToSync = ipsToSync;
+        this.folderToSync = folderToSync;
+    }
 
     @Override
     public void run() {
         FolderStruct folderStruct = new FolderStruct();
         Thread[] srthreads = new Thread[ipsToSync.length];
 
-        /*
-            Pedido 1 - Estrutura de pasta
-        */
+        /*Pedido 1 - Estrutura de pasta*/
         int i = 0;
         for (String ip : ipsToSync){
             srthreads[i] = new Thread(new StructRequest(ip,folderStruct));
@@ -31,18 +35,16 @@ public class Client implements Runnable{
             // TODO
         }
 
-        /*
-            Pedido 2 - Conteúdos
-        */
+
+        /* Criação da estrutura de pastas */
+        folderStruct.createFolderStruct(folderToSync);
+
+        /*Pedido 2 - Conteúdos*/
         for (Map.Entry<String, List<MetaData>> entry : folderStruct.getStruct().entrySet()) {
-            // TODO Por enquanto cada Thread corresponde a uma conexão
-            // Cada Thread será responsável por fazer upload de um ficheiro
-            // ESTAMOS A ASSUMIR INICIALMENTE QUE NÂO EXISTEM FICHEIROS REPITIDO (FRUTO DA OTIMIZAÇÂO INTERMÉDIA DE ANÁLISE DA ESTRUTURA)
             for (MetaData metadata : entry.getValue()){
-                Thread t = new Thread(new FileRequest(entry.getKey(),metadata));
+                Thread t = new Thread(new FileRequest(entry.getKey(),metadata,folderToSync));
                 t.start();
             }
         }
-
     }
 }
