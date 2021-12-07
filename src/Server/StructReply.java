@@ -54,7 +54,7 @@ public class StructReply implements Runnable {
 
         try {
             ReliableConnection rb = new ReliableConnection(this.destAdress,this.destPort);
-            ProtocolFrame pf = new ProtocolFrame((byte)0x3,data.length,data);
+            ProtocolFrame pf = new ProtocolFrame((byte)0x2,data.length,data);
             rb.send(pf.serialize());
         } catch (SocketException e) {
             e.printStackTrace();
@@ -104,7 +104,12 @@ public class StructReply implements Runnable {
     private MetaData getMetaData(Path path){
         try {
             BasicFileAttributes attr = Files.readAttributes(path, BasicFileAttributes.class);
-            return new MetaData(path.toString(),attr.size(),attr.creationTime().toMillis(),attr.lastModifiedTime().toMillis());
+            return new MetaData(
+                    path.toString().substring(folderToSync.length() + 3),
+                    attr.size(),
+                    attr.creationTime().toMillis(),
+                    attr.lastModifiedTime().toMillis()
+            );
         }catch (IOException e){
         }
         return null;
