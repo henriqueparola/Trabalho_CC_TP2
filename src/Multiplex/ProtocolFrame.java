@@ -41,7 +41,6 @@ public class ProtocolFrame {
             data = new byte[dataLength];
             dis.read(data);
         }
-
         bais.close();
         dis.close();
 

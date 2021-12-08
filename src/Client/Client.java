@@ -1,7 +1,7 @@
 package Client;
 
-import java.io.File;
-import java.io.IOException;
+import Logger.ProtocolLogger;
+
 import java.util.List;
 import java.util.Map;
 
@@ -9,7 +9,7 @@ public class Client implements Runnable{
     private String[] ipsToSync;
     private String folderToSync;
 
-    public Client(String[] ipsToSync,String folderToSync){
+    public Client(String[] ipsToSync, String folderToSync){
         this.ipsToSync = ipsToSync;
         this.folderToSync = folderToSync;
     }

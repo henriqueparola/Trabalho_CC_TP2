@@ -1,9 +1,10 @@
 package Server;
 
 import Connection.ReliableConnection;
+import Logger.ProtocolLogger;
+import Logger.ProtocolLogger2;
 import Multiplex.ProtocolFrame;
 
-import java.awt.*;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -17,7 +18,7 @@ public class FileReply implements Runnable{
     private String folderToSync;
     private String filePath;
 
-    public FileReply(InetAddress destAdress, int destPort,String folderToSync,String filePath) throws SocketException {
+    public FileReply(InetAddress destAdress, int destPort, String folderToSync, String filePath) throws SocketException {
         this.filePath = filePath;
         this.destAdress = destAdress;
         this.destPort = destPort;
@@ -27,6 +28,7 @@ public class FileReply implements Runnable{
     @Override
     public void run() {
         try {
+            ProtocolLogger2 pl = ProtocolLogger2.getInstance();
             InputStream is = new FileInputStream(folderToSync + "/" +filePath);
 
             int bytesToRead = 4096 * 100; // 4096 Kb
@@ -37,8 +39,9 @@ public class FileReply implements Runnable{
             // TODO while(is.read(data) > 0){
             is.read(data);
             ProtocolFrame frame = new ProtocolFrame((byte) 0x2,data.length,data);
-            rb.send(frame.serialize());
 
+            pl.loggerInfo("Enviando ficheiro " + filePath + " para o " + destAdress);
+            rb.send(frame.serialize());
             is.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();

@@ -2,6 +2,8 @@ package Multiplex;
 
 import Client.FolderStruct;
 import Connection.ReliableConnection;
+import Logger.ProtocolLogger;
+import Logger.ProtocolLogger2;
 import Server.FileReply;
 import Server.StructReply;
 
@@ -12,14 +14,16 @@ import java.nio.charset.StandardCharsets;
 public class ProtocolDemultiplexer implements Runnable {
     FolderStruct fd;
     String folderToSync;
+    ProtocolLogger protocolLogger;
 
-    public ProtocolDemultiplexer(FolderStruct fd,String folderToSync) {
+    public ProtocolDemultiplexer(FolderStruct fd, String folderToSync) {
         this.fd = fd;
         this.folderToSync = folderToSync;
     }
 
     @Override
     public void run() {
+        ProtocolLogger2 pl = ProtocolLogger2.getInstance();
         boolean running = true;
         try {
             while (running) {
@@ -28,10 +32,18 @@ public class ProtocolDemultiplexer implements Runnable {
                 ProtocolFrame pf = ProtocolFrame.deserialize(data);
                 switch (pf.opcode){
                     case 0x0:
-                        Thread t = new Thread(new StructReply(rb.peerAddress,rb.peerPort,folderToSync));
+                        //System.out.println("SYNC");
+                        pl.loggerInfo("SYNC recebido do " + rb.peerAddress);
+                        Thread t = new Thread(new StructReply(
+                                rb.peerAddress,
+                                rb.peerPort,
+                                folderToSync
+                        ));
                         t.start();
                         break;
                     case 0x1:
+                        //System.out.println("READ");
+                        pl.loggerInfo("READ recebido do " + rb.peerAddress);
                         Thread t2 = new Thread(new FileReply(
                                 rb.peerAddress,
                                 rb.peerPort,

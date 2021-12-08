@@ -1,11 +1,11 @@
 import Client.Client;
+import Logger.ProtocolLogger;
 import Server.Server;
 
 import java.io.*;
 
 public class App {
     public static void main(String[] args) throws IOException {
-
         // Get all Ip's to sync
         String[] ipsToSync = new String[args.length - 1];
         for (int i = 0; i < args.length - 1; i++)

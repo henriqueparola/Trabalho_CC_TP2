@@ -1,15 +1,13 @@
 package Server;
 
 import Client.MetaData;
-import Connection.ConnectionFrame;
 import Connection.ReliableConnection;
+import Logger.ProtocolLogger;
+import Logger.ProtocolLogger2;
 import Multiplex.ProtocolFrame;
 
-import java.awt.*;
 import java.net.*;
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,6 +30,7 @@ public class StructReply implements Runnable {
 
     @Override
     public void run() {
+        ProtocolLogger2 pl = ProtocolLogger2.getInstance();
         Path path = Paths.get("./" + folderToSync);
 
         Stream<Path> walk = null;
@@ -55,6 +54,7 @@ public class StructReply implements Runnable {
         try {
             ReliableConnection rb = new ReliableConnection(this.destAdress,this.destPort);
             ProtocolFrame pf = new ProtocolFrame((byte)0x2,data.length,data);
+            pl.loggerInfo("Enviando estrutura de pastas para o " + destAdress);
             rb.send(pf.serialize());
         } catch (SocketException e) {
             e.printStackTrace();

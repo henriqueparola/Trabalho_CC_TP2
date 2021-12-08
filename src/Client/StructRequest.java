@@ -1,19 +1,20 @@
 package Client;
 
 import Connection.ReliableConnection;
+import Logger.ProtocolLogger;
+import Logger.ProtocolLogger2;
 import Multiplex.ProtocolFrame;
 
 import java.net.*;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 public class StructRequest implements Runnable{
     private String ipToSync;
-    FolderStruct folderStruct; // TODO prencher folder
+    FolderStruct folderStruct;
 
-    StructRequest(String ipToSync,FolderStruct folderStruct){
+    StructRequest(String ipToSync, FolderStruct folderStruct){
         this.ipToSync = ipToSync;
         this.folderStruct = folderStruct;
     }
@@ -21,8 +22,11 @@ public class StructRequest implements Runnable{
     @Override
     public void run() {
         try {
+            ProtocolLogger2 pl = ProtocolLogger2.getInstance();
             ReliableConnection rb = new ReliableConnection(InetAddress.getByName(ipToSync), 5000);
             ProtocolFrame pf2 = new ProtocolFrame((byte) 0x0,0,null);
+
+            pl.loggerInfo("Requisitando estrutura de pastas do " + ipToSync);
             rb.send(pf2.serialize());
 
             int port = rb.socket.getLocalPort();
@@ -30,6 +34,7 @@ public class StructRequest implements Runnable{
 
             ReliableConnection rb2 = new ReliableConnection(port);
             byte[] data = rb2.receive();
+            pl.loggerInfo("Recebida a estrutura de pastas do " + ipToSync);
 
             ProtocolFrame pf = ProtocolFrame.deserialize(data);
             List<MetaData> list = deserialize(pf.data);
