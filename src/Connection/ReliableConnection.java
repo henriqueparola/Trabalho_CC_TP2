@@ -1,5 +1,8 @@
 package Connection;
 
+import Security.CreatePassword;
+import Security.RequestInterceptor;
+
 import javax.xml.crypto.Data;
 import java.awt.*;
 import java.io.*;
@@ -7,6 +10,9 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Time;
 import java.util.concurrent.*;
 
@@ -18,6 +24,7 @@ public class ReliableConnection {
     public InetAddress peerAddress;
     public int peerPort;
     private int seq;
+    private String key;
 
     public ReliableConnection(int port,InetAddress inetPeer1, int portPeer1) throws SocketException {
         this.peerAddress = inetPeer1;
@@ -47,7 +54,8 @@ public class ReliableConnection {
         DataInputStream  dis = new DataInputStream(new BufferedInputStream(bais));
         byte dataOut[] = new byte[MTU];
         // Recebe-se um Frame e não dados
-        ConnectionFrame frameIn;
+        SecurityFrame frameIn;
+        ConnectionFrame dataFrame;
         // Para saber se se pode saltar o ciclo de tentativas
         boolean received = false;
         // Máximas tentativas de timeout
@@ -55,11 +63,11 @@ public class ReliableConnection {
         // para saber o tamanho lido da stream
         int size = 0;
         ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<ConnectionFrame> future;
-        Callable<ConnectionFrame> callable = new Callable<ConnectionFrame>() {
+        Future<SecurityFrame> future;
+        Callable<SecurityFrame> callable = new Callable<SecurityFrame>() {
             @Override
-            public ConnectionFrame call() throws IOException {
-                ConnectionFrame r = rdtRcvPckt();
+            public SecurityFrame call() throws IOException {
+                SecurityFrame r = rdtRcvPckt();
                 if (Thread.interrupted()) {
                     socket.setSoTimeout(1);
                 }
@@ -74,7 +82,8 @@ public class ReliableConnection {
                 try {
 
                     frameIn = future.get(1500, TimeUnit.MILLISECONDS);
-                    if (notCurrupt(frameIn) && isAck(frameIn, this.seq + 1)) {
+                    dataFrame = ConnectionFrame.deserealize(frameIn.data);;
+                    if (notCorrupt(frameIn) && isAck(dataFrame, this.seq + 1)) {
                         received = true;
                         this.seq++;
                     }
@@ -104,18 +113,31 @@ public class ReliableConnection {
         return frame.tag == seq && frame.dataLen == 0;
     }
 
-    private boolean notCurrupt(ConnectionFrame frame) {
+    private boolean notCorrupt(SecurityFrame frame) {
         return true;
     }
 
-    private void udtSendPckt(int size, byte[] data, int seq) throws IOException {
+    private byte[] makeOut(int size, byte[]data, int seq) throws IOException{
         ConnectionFrame outFrame = new ConnectionFrame(seq, size, data);
-
-
         byte[] frameOut;
         frameOut = outFrame.serialize();
         outFrame = ConnectionFrame.deserealize(frameOut);
         frameOut = outFrame.serialize();
+        byte[] securityOut = null;
+
+        //try {
+            //String hashSecurity = RequestInterceptor.calculateHMacHash(this.key, RequestInterceptor.byteArrayToHex(frameOut));
+            String hashSecurity = "hello";
+            SecurityFrame securityFrame = new SecurityFrame(hashSecurity, frameOut);
+            securityOut = securityFrame.serialize();
+        //} catch (NoSuchAlgorithmException | InvalidKeyException e) {
+
+        //}
+
+        return securityOut;
+    }
+    private void udtSendPckt(int size, byte[] data, int seq) throws IOException {
+        byte[] frameOut = makeOut(size, data, seq);
         DatagramPacket outPacket = new DatagramPacket(frameOut,
                                                     frameOut.length,
                                                     this.peerAddress,
@@ -123,7 +145,7 @@ public class ReliableConnection {
         socket.send(outPacket);
     }
 
-    private ConnectionFrame rdtRcvPckt() throws IOException {
+    private SecurityFrame rdtRcvPckt() throws IOException {
         byte dataIn[] = new byte[ConnectionFrame.MTU];
         DatagramPacket inPacket = new DatagramPacket(dataIn, dataIn.length);
         socket.receive(inPacket);
@@ -135,7 +157,7 @@ public class ReliableConnection {
         while(!sameRecipient(inPacket.getAddress(), inPacket.getPort()))
             socket.receive(inPacket);
 
-        ConnectionFrame inFrame = ConnectionFrame.deserealize(inPacket.getData());
+        SecurityFrame inFrame = SecurityFrame.deserialize(inPacket.getData());
 
         return inFrame;
     }
@@ -145,14 +167,18 @@ public class ReliableConnection {
         DataOutputStream dos  = new DataOutputStream(new BufferedOutputStream(baos));
 
         boolean flag = true;
+        SecurityFrame securityFrame;
         ConnectionFrame inFrame;
 
         while (flag) {
-            inFrame = rdtRcvPckt();
+            securityFrame = rdtRcvPckt();
+            inFrame = ConnectionFrame.deserealize(securityFrame.data);
+
+
 
             if (inFrame.dataLen < this.MTU) flag = false;
 
-            if (notCurrupt(inFrame) && validSeq(inFrame)) {
+            if (notCorrupt(securityFrame) && validSeq(inFrame)) {
                 dos.write(inFrame.data);
                 this.seq++;
             }
