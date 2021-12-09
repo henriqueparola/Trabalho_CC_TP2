@@ -12,11 +12,10 @@ import java.util.List;
 
 public class StructRequest implements Runnable{
     private String ipToSync;
-    FolderStruct folderStruct;
+    FolderStruct folderStruct = FolderStruct.getInstance();
 
-    StructRequest(String ipToSync, FolderStruct folderStruct){
+    StructRequest(String ipToSync){
         this.ipToSync = ipToSync;
-        this.folderStruct = folderStruct;
     }
 
     @Override
