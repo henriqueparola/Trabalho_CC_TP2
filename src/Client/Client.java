@@ -16,13 +16,13 @@ public class Client implements Runnable{
 
     @Override
     public void run() {
-        FolderStruct folderStruct = new FolderStruct();
+        FolderStruct folderStruct = FolderStruct.getInstance();
         Thread[] srthreads = new Thread[ipsToSync.length];
 
         /*Pedido 1 - Estrutura de pasta*/
         int i = 0;
         for (String ip : ipsToSync){
-            srthreads[i] = new Thread(new StructRequest(ip,folderStruct));
+            srthreads[i] = new Thread(new StructRequest(ip));
             srthreads[i].start();
             i++;
         }
