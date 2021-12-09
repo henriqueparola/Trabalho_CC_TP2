@@ -12,12 +12,9 @@ import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 
 public class ProtocolDemultiplexer implements Runnable {
-    FolderStruct fd;
     String folderToSync;
-    ProtocolLogger protocolLogger;
 
-    public ProtocolDemultiplexer(FolderStruct fd, String folderToSync) {
-        this.fd = fd;
+    public ProtocolDemultiplexer(String folderToSync) {
         this.folderToSync = folderToSync;
     }
 

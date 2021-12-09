@@ -14,8 +14,8 @@ public class Server implements Runnable{
     @Override
     public void run() {
         FolderStruct fd = new FolderStruct();
-        Thread t2 = new Thread(new HttpServer(fd));
-        Thread t = new Thread(new ProtocolDemultiplexer(fd,folderToSync));
+        Thread t2 = new Thread(new HttpServer());
+        Thread t = new Thread(new ProtocolDemultiplexer(folderToSync));
 
         t.start();
         t2.start();

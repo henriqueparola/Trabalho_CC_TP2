@@ -14,11 +14,10 @@ import java.util.Map;
 
 public class ClientHandler implements Runnable{
     Socket socket;
-    FolderStruct fd;
+    FolderStruct fd = FolderStruct.getInstance();
 
-    public ClientHandler(Socket accept, FolderStruct fd) {
+    public ClientHandler(Socket accept) {
         socket = accept;
-        this.fd = fd;
     }
 
     @Override
@@ -92,10 +91,9 @@ public class ClientHandler implements Runnable{
                 "</style><h2>Estado de recebimento de ficheiros</h2><br><table style=\"width:100%\"><tr><th>Nome</th><th>IP remetente</th><th>Sincronizado?</th></tr>";
 
         for (Map.Entry<String, List<Boolean>> fileState: fd.getStructState().entrySet()){
-            System.out.println("chegueiiiiiii");
             int i = 0;
             for(Boolean bool: fileState.getValue()){
-                responseBody+= "<tr>";
+                responseBody += "<tr>";
                 responseBody += ("<td style=\"color:blue\">" +  fd.getFileName(fileState.getKey(),i) + "</td>");
                 responseBody += ("<td>" + fileState.getKey() + "</td>");
                 if(bool == true) {

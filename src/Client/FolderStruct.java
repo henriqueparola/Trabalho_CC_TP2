@@ -1,5 +1,7 @@
 package Client;
 
+import Logger.ProtocolLogger2;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -14,8 +16,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class FolderStruct {
+    private static FolderStruct single_instance = null;
     private Map<String, List<MetaData>> folder = new HashMap<>();
-    public Map<String, List<Boolean>> folderState = new HashMap<>();
+    private Map<String, List<Boolean>> folderState = new HashMap<>();
 
 
     public void createFolderStruct(String folderToSync) {
@@ -36,6 +39,7 @@ public class FolderStruct {
         List<Boolean> stateOfIpFiles = new ArrayList<>();
         for (int i = 0; i < foldersFromIp.size();i++)
             stateOfIpFiles.add(false);
+
         folderState.put(ip,stateOfIpFiles);
     }
 
@@ -49,5 +53,26 @@ public class FolderStruct {
 
     public String getFileName(String key, int index) {
         return folder.get(key).get(index).getFilePath();
+    }
+
+    public void changeState(String key, String fileName){
+        List<MetaData> list = folder.get(key);
+        int index = 0;
+        for(int i = 0; i < list.size(); i++){
+            if (list.get(i).getFilePath().equals(fileName)){
+                index = i;
+                break;
+            }
+        }
+        List<Boolean> listState = folderState.get(key);
+        listState.set(index,true);
+        folderState.put(key,listState);
+    }
+
+    public static FolderStruct getInstance() {
+        if (single_instance == null)
+            single_instance = new FolderStruct();
+
+        return single_instance;
     }
 }
