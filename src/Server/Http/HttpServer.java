@@ -6,11 +6,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 
 public class HttpServer implements Runnable{
-    FolderStruct fd;
-
-    public HttpServer(FolderStruct fd) {
-        this.fd = fd;
-    }
+    FolderStruct fd = FolderStruct.getInstance();
 
     @Override
     public void run() {
@@ -18,7 +14,7 @@ public class HttpServer implements Runnable{
         try{
             ServerSocket ssocket = new ServerSocket(8080);
             while(running){
-                ClientHandler ch = new ClientHandler(ssocket.accept(),fd);
+                ClientHandler ch = new ClientHandler(ssocket.accept());
                 Thread t = new Thread(ch);
                 t.start();
             }
