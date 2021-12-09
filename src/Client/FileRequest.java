@@ -49,7 +49,8 @@ public class FileRequest implements Runnable{
             file.createNewFile();
             OutputStream os = new FileOutputStream(file);
             os.write(pf.data);
-
+            FolderStruct fd = FolderStruct.getInstance();
+            fd.changeState(ipToSync, fileMetaData.getFilePath());
         } catch (SocketException e) {
             e.printStackTrace();
         } catch (UnknownHostException e) {
