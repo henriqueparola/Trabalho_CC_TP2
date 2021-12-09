@@ -82,7 +82,7 @@ public class ReliableConnection {
                 try {
 
                     frameIn = future.get(1500, TimeUnit.MILLISECONDS);
-                    dataFrame = ConnectionFrame.deserealize(frameIn.data);;
+                    dataFrame = ConnectionFrame.deserealize(frameIn.data);
                     if (notCorrupt(frameIn) && isAck(dataFrame, this.seq + 1)) {
                         received = true;
                         this.seq++;
@@ -191,10 +191,11 @@ public class ReliableConnection {
     }
 
     private void sendAck() throws IOException {
-        ConnectionFrame ackFrame = new ConnectionFrame(this.seq, 0, null);
-        byte[] dataOut = ackFrame.serialize();
-        DatagramPacket outPacket = new DatagramPacket(dataOut,
-                                                    dataOut.length,
+        byte[] frameOut = makeOut(0, null, this.seq);
+        //ConnectionFrame ackFrame = new ConnectionFrame(this.seq, 0, null);
+        //byte[] dataOut = ackFrame.serialize();
+        DatagramPacket outPacket = new DatagramPacket(frameOut,
+                                                    frameOut.length,
                                                     this.peerAddress,
                                                     this.peerPort);
         socket.send(outPacket);
