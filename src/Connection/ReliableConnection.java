@@ -20,11 +20,11 @@ import static java.lang.Thread.sleep;
 
 public class ReliableConnection {
     public DatagramSocket socket;
-    private final int MTU = 1400; // TODO: Verificar o valor certo
+    private final int MTU = 1300; // TODO: Verificar o valor certo
     public InetAddress peerAddress;
     public int peerPort;
     private int seq;
-    private String key;
+    private String key = "key";
 
     public ReliableConnection(int port,InetAddress inetPeer1, int portPeer1) throws SocketException {
         this.peerAddress = inetPeer1;
@@ -81,7 +81,7 @@ public class ReliableConnection {
                 future = executor.submit(callable);
                 try {
 
-                    frameIn = future.get(1500, TimeUnit.MILLISECONDS);
+                    frameIn = future.get(25, TimeUnit.MILLISECONDS);
                     dataFrame = ConnectionFrame.deserealize(frameIn.data);
                     if (notCorrupt(frameIn) && isAck(dataFrame, this.seq + 1)) {
                         received = true;
@@ -113,26 +113,20 @@ public class ReliableConnection {
         return frame.tag == seq && frame.dataLen == 0;
     }
 
-    private boolean notCorrupt(SecurityFrame frame) {
-        return true;
-    }
+private boolean notCorrupt(SecurityFrame frame) {
+    return CreatePassword.checkAuthenticated(this.key, frame.data, frame.hashMac );
+}
 
-    private byte[] makeOut(int size, byte[]data, int seq) throws IOException{
+public byte[] makeOut(int size, byte[]data, int seq) throws IOException{
         ConnectionFrame outFrame = new ConnectionFrame(seq, size, data);
         byte[] frameOut;
         frameOut = outFrame.serialize();
-        outFrame = ConnectionFrame.deserealize(frameOut);
-        frameOut = outFrame.serialize();
         byte[] securityOut = null;
 
-        //try {
-            //String hashSecurity = RequestInterceptor.calculateHMacHash(this.key, RequestInterceptor.byteArrayToHex(frameOut));
-            String hashSecurity = "hello";
-            SecurityFrame securityFrame = new SecurityFrame(hashSecurity, frameOut);
-            securityOut = securityFrame.serialize();
-        //} catch (NoSuchAlgorithmException | InvalidKeyException e) {
+        byte[] hash = CreatePassword.createDigest(this.key, frameOut);
+        SecurityFrame securityFrame = new SecurityFrame(hash, frameOut.length, frameOut);
+        securityOut = securityFrame.serialize();
 
-        //}
 
         return securityOut;
     }
@@ -146,7 +140,7 @@ public class ReliableConnection {
     }
 
     private SecurityFrame rdtRcvPckt() throws IOException {
-        byte dataIn[] = new byte[ConnectionFrame.MTU];
+        byte dataIn[] = new byte[SecurityFrame.MTU];
         DatagramPacket inPacket = new DatagramPacket(dataIn, dataIn.length);
         socket.receive(inPacket);
 
@@ -163,7 +157,7 @@ public class ReliableConnection {
     }
 
     public byte[] receive() throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(MTU);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos  = new DataOutputStream(new BufferedOutputStream(baos));
 
         boolean flag = true;
