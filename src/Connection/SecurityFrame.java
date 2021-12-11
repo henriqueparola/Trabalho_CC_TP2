@@ -1,14 +1,17 @@
 package Connection;
 
 import java.io.*;
+import java.util.Arrays;
 
 public class SecurityFrame {
-    public final String hashMac;
+    public final byte[] hashMac;
     public final byte[] data;
-    public static final int MTU = 1408;
+    public final int size;
+    public static final int MTU = 1332;
 
-    public SecurityFrame(String hashMac, byte[] data) {
+    public SecurityFrame(byte[] hashMac, int size, byte[] data) {
         this.hashMac = hashMac;
+        this.size = size;
         this.data = data;
     }
 
@@ -16,11 +19,13 @@ public class SecurityFrame {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(baos));
 
-        dos.writeUTF(hashMac);
-        dos.write(data);
+        dos.write(hashMac);
+        dos.writeInt(size);
+        if (size > 0)
+            dos.write(data);
 
-        dos.close();
         baos.close();
+        dos.close();
 
         return baos.toByteArray();
     }
@@ -29,16 +34,19 @@ public class SecurityFrame {
     public static SecurityFrame deserialize(byte[] byteFrame) throws IOException {
         ByteArrayInputStream bais = new ByteArrayInputStream(byteFrame);
         DataInputStream dis = new DataInputStream(new BufferedInputStream(bais));
-        String hash = dis.readUTF();
-        byte[] data;
-
-        data = new byte[MTU];
-        dis.read(data);
+        byte[] hash = new byte[20];
+        dis.read(hash);
+        int size = dis.readInt();
+        byte[] data = null;
+        if (size > 0) {
+              data = new byte[size];
+              dis.read(data);
+        }
 
         bais.close();
         dis.close();
 
-        return new SecurityFrame(hash, data);
+        return new SecurityFrame(hash, size, data);
     }
 
 
