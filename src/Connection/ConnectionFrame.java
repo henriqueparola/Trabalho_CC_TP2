@@ -7,7 +7,7 @@ public class ConnectionFrame {
     public final int tag;
     public final int dataLen;
     public final byte[] data;
-    public static final int MTU = 1408;
+    public static final int MTU = 1308;
 
 
     public ConnectionFrame(int tag, int dataLen, byte[] data) {
@@ -23,7 +23,7 @@ public class ConnectionFrame {
         dos.writeInt(this.tag);
         dos.writeInt(this.dataLen);
         if (this.dataLen > 0) {
-            dos.write(this.data);
+            dos.write(this.data, 0, dataLen);
         }
         dos.close();
         baos.close();
