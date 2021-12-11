@@ -18,6 +18,7 @@ public class FileRequest implements Runnable{
     private String ipToSync;
     private MetaData fileMetaData;
     private String folderToSync;
+    private final int maxBlockSize = 1024 * 1024 * 2; //200 Mib
 
     public FileRequest(String ipToSync, MetaData fileMetaData, String folderToSync) {
         this.ipToSync = ipToSync;
@@ -39,16 +40,28 @@ public class FileRequest implements Runnable{
             rb.close();
 
             ReliableConnection rb2 = new ReliableConnection(port);
-            // TODO suportar um recebimento de ficheiro em mais que um receive
-            byte[] dataReceive = rb2.receive();
-
-            pl.loggerInfo("Recebido ficheiro " + fileMetaData.getFilePath());
-            ProtocolFrame pf = ProtocolFrame.deserialize(dataReceive);
-
             File file = new File(folderToSync + "/" + fileMetaData.getFilePath());
             file.createNewFile();
             OutputStream os = new FileOutputStream(file);
-            os.write(pf.data);
+            // TODO suportar um recebimento de ficheiro em mais que um receive
+            ProtocolFrame pf;
+            //definido
+            int blocoFicheiro = 0;
+            if (fileMetaData.getSize() > 0)  {
+                do {
+                    byte[] dataReceive = rb2.receive();
+                    pf = ProtocolFrame.deserialize(dataReceive);
+                    os.write(pf.data);
+                    System.out.println("SIZE DATA RECEIVE " + pf.datLength);
+                    pl.loggerInfo("Enviar bloco + " + blocoFicheiro++ + " do ficheiro " + fileMetaData.getFilePath());
+                } while(pf.datLength == maxBlockSize);
+            }
+
+
+
+            rb2.close();
+            os.close();
+            pl.loggerInfo("Recebido ficheiro " + fileMetaData.getFilePath());
             FolderStruct fd = FolderStruct.getInstance();
             fd.changeState(ipToSync, fileMetaData.getFilePath());
         } catch (SocketException e) {

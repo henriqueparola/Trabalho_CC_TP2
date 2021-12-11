@@ -5,10 +5,7 @@ import Logger.ProtocolLogger;
 import Logger.ProtocolLogger2;
 import Multiplex.ProtocolFrame;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.SocketException;
 
@@ -17,6 +14,7 @@ public class FileReply implements Runnable{
     private int destPort;
     private String folderToSync;
     private String filePath;
+    private final int bytesToRead = 1024  * 1024 * 2; // 50 Mib
 
     public FileReply(InetAddress destAdress, int destPort, String folderToSync, String filePath) throws SocketException {
         this.filePath = filePath;
@@ -29,19 +27,34 @@ public class FileReply implements Runnable{
     public void run() {
         try {
             ProtocolLogger2 pl = ProtocolLogger2.getInstance();
-            InputStream is = new FileInputStream(folderToSync + "/" +filePath);
+            File file = new File(folderToSync + "/" + filePath);
+            InputStream is = new FileInputStream(file);
 
-            int bytesToRead = 4096 * 100; // 4096 Kb
-            byte[] data = new byte[bytesToRead];
+            //Visto que esta fase é stop and wait o objetivo é conseguir enviar
+            //uma quantidade razoavel de informação por blocos.
+            //Uma vez que o send usa janelas.
+
 
             ReliableConnection rb = new ReliableConnection(this.destAdress,this.destPort);
 
             // TODO while(is.read(data) > 0){
-            is.read(data);
-            ProtocolFrame frame = new ProtocolFrame((byte) 0x2,data.length,data);
-
             pl.loggerInfo("Enviando ficheiro " + filePath + " para o " + destAdress);
-            rb.send(frame.serialize());
+            int blocoFicheiro = 0;
+            int size;
+
+            if (file.length() > 0) {
+
+                byte[] data = new byte[bytesToRead];
+                while ((size = is.read(data)) != -1) {
+                    pl.loggerInfo("Enviar bloco + " + blocoFicheiro++ + " do ficheiro " + filePath + " para o " + destAdress);
+
+                    System.out.println("SIZE SENT " + size);
+                    ProtocolFrame frame = new ProtocolFrame((byte) 0x2,size,data);
+                    rb.send(frame.serialize());
+                }
+            }
+
+
             is.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
