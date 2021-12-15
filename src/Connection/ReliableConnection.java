@@ -170,9 +170,8 @@ public byte[] makeOut(int size, byte[]data, int seq) throws IOException{
             securityFrame = rdtRcvPckt();
             inFrame = ConnectionFrame.deserealize(securityFrame.data);
 
-            if (inFrame.dataLen < this.MTU) flag = false;
-
             if (notCorrupt(securityFrame) && validSeq(inFrame)) {
+                if (inFrame.dataLen < this.MTU) flag = false;
                 dos.write(inFrame.data);
                 this.seq++;
             }

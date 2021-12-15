@@ -45,6 +45,7 @@ public class Client implements Runnable{
         i = 0;
         for (Map.Entry<String, List<MetaData>> entry : folderStruct.getStruct().entrySet()) {
             for (MetaData metadata : entry.getValue()){
+                System.out.println("I: " + i);
                 frthreads[i] = new Thread(new FileRequest(entry.getKey(),metadata,folderToSync));
                 frthreads[i].start();
                 i++;

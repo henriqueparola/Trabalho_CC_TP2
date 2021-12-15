@@ -50,12 +50,12 @@ public class FileRequest implements Runnable{
             if (fileMetaData.getSize() > 0)  {
                 do {
                     byte[] dataReceive = rb2.receive();
-                    if (dataReceive.length > 0) {
-                        pf = ProtocolFrame.deserialize(dataReceive);
-                        os.write(pf.data);
-                        pl.loggerInfo("Recebido bloco + " + blocoFicheiro++ + " do ficheiro " + fileMetaData.getFilePath());
-                        len = pf.datLength;
-                    }
+
+                    pf = ProtocolFrame.deserialize(dataReceive);
+                    os.write(pf.data);
+                    pl.loggerInfo("Recebido bloco + " + blocoFicheiro++ + " do ficheiro " + fileMetaData.getFilePath());
+                    len = pf.datLength;
+
                 } while(len == maxBlockSize);
             }
 
