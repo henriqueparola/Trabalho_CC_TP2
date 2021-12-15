@@ -18,7 +18,7 @@ public class FileRequest implements Runnable{
     private String ipToSync;
     private MetaData fileMetaData;
     private String folderToSync;
-    private final int maxBlockSize = 1024 * 1024 * 2; //200 Mib
+    private final int maxBlockSize = 1024 * 1024 * 2; //2 Mb
 
     public FileRequest(String ipToSync, MetaData fileMetaData, String folderToSync) {
         this.ipToSync = ipToSync;
@@ -43,21 +43,21 @@ public class FileRequest implements Runnable{
             File file = new File(folderToSync + "/" + fileMetaData.getFilePath());
             file.createNewFile();
             OutputStream os = new FileOutputStream(file);
-            // TODO suportar um recebimento de ficheiro em mais que um receive
-            ProtocolFrame pf;
-            //definido
+            ProtocolFrame pf = null;
+
             int blocoFicheiro = 0;
+            int len = maxBlockSize;
             if (fileMetaData.getSize() > 0)  {
                 do {
                     byte[] dataReceive = rb2.receive();
-                    pf = ProtocolFrame.deserialize(dataReceive);
-                    os.write(pf.data);
-                    System.out.println("SIZE DATA RECEIVE " + pf.datLength);
-                    pl.loggerInfo("Enviar bloco + " + blocoFicheiro++ + " do ficheiro " + fileMetaData.getFilePath());
-                } while(pf.datLength == maxBlockSize);
+                    if (dataReceive.length > 0) {
+                        pf = ProtocolFrame.deserialize(dataReceive);
+                        os.write(pf.data);
+                        pl.loggerInfo("Recebido bloco + " + blocoFicheiro++ + " do ficheiro " + fileMetaData.getFilePath());
+                        len = pf.datLength;
+                    }
+                } while(len == maxBlockSize);
             }
-
-
 
             rb2.close();
             os.close();

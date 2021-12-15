@@ -12,9 +12,14 @@ import java.util.logging.SimpleFormatter;
 import static java.lang.System.out;
 
 public class ProtocolLogger2 {
+    private boolean activate;
+
     private static ProtocolLogger2 single_instance = null;
+
     Lock lock = new ReentrantLock();
+
     static File file = new File("log.txt");
+
     static{
         if(!file.exists()){
             try {
@@ -25,12 +30,17 @@ public class ProtocolLogger2 {
         }
     }
 
+    public void setActive(){
+        activate = true;
+    }
 
     public void loggerInfo(String message){
+        if (activate == false) return;
         lock.lock();
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
         LocalDateTime now = LocalDateTime.now();
         String str = "[INFO - " + dtf.format(now) + " ] " + message + ".\n";
+        String strSout = "\u001B[33m" +  "[INFO - " + dtf.format(now) + " ] " + "\u001B[0m" + message + ".\n";
         BufferedWriter out = null;
         try {
             out = new BufferedWriter(new FileWriter("log.txt",true));
@@ -41,7 +51,7 @@ public class ProtocolLogger2 {
         }finally {
             lock.unlock();
         }
-        System.out.println(str);
+        System.out.println(strSout);
     }
 
     public static ProtocolLogger2 getInstance() {

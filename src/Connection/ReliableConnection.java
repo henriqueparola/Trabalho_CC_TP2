@@ -15,12 +15,14 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Time;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static java.lang.Thread.sleep;
 
 public class ReliableConnection {
     public DatagramSocket socket;
-    private final int MTU = 1300; // TODO: Verificar o valor certo
+    private final int MTU = 1300;
     public InetAddress peerAddress;
     public int peerPort;
     private int seq;
@@ -168,15 +170,14 @@ public byte[] makeOut(int size, byte[]data, int seq) throws IOException{
             securityFrame = rdtRcvPckt();
             inFrame = ConnectionFrame.deserealize(securityFrame.data);
 
-
-
             if (inFrame.dataLen < this.MTU) flag = false;
 
             if (notCorrupt(securityFrame) && validSeq(inFrame)) {
                 dos.write(inFrame.data);
                 this.seq++;
             }
-                sendAck();
+
+            sendAck();
         }
 
         baos.close();

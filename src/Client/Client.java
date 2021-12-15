@@ -40,11 +40,25 @@ public class Client implements Runnable{
         folderStruct.createFolderStruct(folderToSync);
 
         /*Pedido 2 - Conteúdos*/
+        Integer numOfFilesToRequest = folderStruct.getStruct().values().stream().mapToInt(List::size).sum();
+        Thread[] frthreads = new Thread[numOfFilesToRequest];
+        i = 0;
         for (Map.Entry<String, List<MetaData>> entry : folderStruct.getStruct().entrySet()) {
             for (MetaData metadata : entry.getValue()){
-                Thread t = new Thread(new FileRequest(entry.getKey(),metadata,folderToSync));
-                t.start();
+                frthreads[i] = new Thread(new FileRequest(entry.getKey(),metadata,folderToSync));
+                frthreads[i].start();
+                i++;
             }
+        }
+
+        /* Espera pelo recebimento dos ficheiros todos */
+        try {
+            for (Thread frthread : frthreads) {
+                frthread.join();
+            }
+            System.out.println( "> sync "+"\u001B[32m"+ "complete!" + "\u001B[0m");
+        }catch (InterruptedException e){
+            // TODO
         }
     }
 }

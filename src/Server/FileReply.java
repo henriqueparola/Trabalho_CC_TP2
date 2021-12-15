@@ -14,7 +14,7 @@ public class FileReply implements Runnable{
     private int destPort;
     private String folderToSync;
     private String filePath;
-    private final int bytesToRead = 1024  * 1024 * 2; // 50 Mib
+    private final int bytesToRead = 1024  * 1024 * 2; // 2 Mb
 
     public FileReply(InetAddress destAdress, int destPort, String folderToSync, String filePath) throws SocketException {
         this.filePath = filePath;
@@ -34,10 +34,8 @@ public class FileReply implements Runnable{
             //uma quantidade razoavel de informação por blocos.
             //Uma vez que o send usa janelas.
 
-
             ReliableConnection rb = new ReliableConnection(this.destAdress,this.destPort);
 
-            // TODO while(is.read(data) > 0){
             pl.loggerInfo("Enviando ficheiro " + filePath + " para o " + destAdress);
             int blocoFicheiro = 0;
             int size;
@@ -46,9 +44,7 @@ public class FileReply implements Runnable{
 
                 byte[] data = new byte[bytesToRead];
                 while ((size = is.read(data)) != -1) {
-                    pl.loggerInfo("Enviar bloco + " + blocoFicheiro++ + " do ficheiro " + filePath + " para o " + destAdress);
-
-                    System.out.println("SIZE SENT " + size);
+                    pl.loggerInfo("Enviando bloco + " + blocoFicheiro++ + " do ficheiro " + filePath + " para o " + destAdress);
                     ProtocolFrame frame = new ProtocolFrame((byte) 0x2,size,data);
                     rb.send(frame.serialize());
                 }
