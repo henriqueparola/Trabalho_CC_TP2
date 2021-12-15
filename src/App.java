@@ -1,6 +1,7 @@
 import Client.Client;
 import Logger.ProtocolLogger;
 import Server.Server;
+import Client.FolderStruct;
 
 import java.io.*;
 
@@ -13,6 +14,10 @@ public class App {
 
         // Get the folder to sync
         String folderToSync = args[0];
+
+
+        FolderStruct fd = FolderStruct.getInstance();
+        fd.addMyList(folderToSync);
 
         Thread tServer = new Thread(new Server(folderToSync));
         Thread tClient = new Thread(new Client(ipsToSync,folderToSync));
