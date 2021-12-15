@@ -62,11 +62,18 @@ public class MetaData {
         }
     }
 
-    public boolean equals(MetaData metaData){
-        if ((this.size == metaData.size) &&
+    public boolean equals(Object o){
+        if (o == this) return true;
+        if (!(o instanceof MetaData))
+            return false;
+        MetaData metaData = (MetaData) o;
+        return (this.size == metaData.size) &&
                 (this.modifiedDate == metaData.modifiedDate) &&
                 (this.creationDate == metaData.creationDate) &&
-                (this.filePath.equals(metaData.getFilePath()))) return true;
-        return false;
+                (this.filePath.equals(metaData.getFilePath()));
+   }
+
+    public MetaData clone() {
+        return new MetaData(this.filePath, this.size, this.creationDate, this.modifiedDate);
     }
 }
