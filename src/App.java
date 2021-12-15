@@ -2,6 +2,7 @@ import Client.Client;
 import Logger.ProtocolLogger;
 import Logger.ProtocolLogger2;
 import Server.Server;
+import Client.FolderStruct;
 
 import java.io.*;
 
@@ -29,6 +30,10 @@ public class App {
         for (int i = 0; i < numberOfIps; i++){
             ipsToSync[i] = args[startIp + i];
         }
+
+
+        FolderStruct fd = FolderStruct.getInstance();
+        fd.addMyList(folderToSync);
 
         Thread tServer = new Thread(new Server(folderToSync));
         Thread tClient = new Thread(new Client(ipsToSync,folderToSync));
