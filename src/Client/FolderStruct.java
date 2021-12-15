@@ -89,7 +89,8 @@ public class FolderStruct {
             folder.put(ip, foldersFromIp);
 
 
-        System.out.println("ADDED " + foldersFromIp.size() + "FILES");
+        // debug
+        //System.out.println("ADDED " + foldersFromIp.size() + "FILES");
         l.unlock();
     }
 
@@ -111,7 +112,8 @@ public class FolderStruct {
                 }
                 else if (cmp == 0) {
                     found = true;
-                    System.out.println("Res from remove " + toAdd.remove(mt));
+                    // debug
+                    // System.out.println("Res from remove " + toAdd.remove(mt));
                 }
             }
         }
