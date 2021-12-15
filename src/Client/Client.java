@@ -34,6 +34,7 @@ public class Client implements Runnable{
         }catch (InterruptedException e){
             // TODO
         }
+        folderStruct.setStates();
 
 
         /* Criação da estrutura de pastas */
