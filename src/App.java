@@ -1,10 +1,12 @@
 import Client.Client;
 import Logger.ProtocolLogger;
 import Logger.ProtocolLogger2;
+import Security.Authentication;
 import Server.Server;
 import Client.FolderStruct;
 
 import java.io.*;
+import java.util.Scanner;
 
 public class App {
     public static void main(String[] args) throws IOException {
@@ -31,6 +33,12 @@ public class App {
             ipsToSync[i] = args[startIp + i];
         }
 
+        // Get credencials
+        Scanner sc= new Scanner(System.in); //System.in is a standard input stream.
+        System.out.println("> senha: ");
+        String str= sc.nextLine(); //reads string
+        Authentication auth = Authentication.getInstance();
+        auth.setPasswordInsert(str);
 
         FolderStruct fd = FolderStruct.getInstance();
         fd.addMyList(folderToSync);

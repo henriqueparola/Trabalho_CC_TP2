@@ -1,7 +1,5 @@
 package Client;
 
-import Logger.ProtocolLogger2;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,6 +19,10 @@ public class FolderStruct {
     private Map<String, List<MetaData>> folder = new HashMap<>();
     private Map<String, List<Boolean>> folderState = new HashMap<>();
     private Lock l = new ReentrantLock();
+
+    public List<MetaData> getMyFolder(){
+        return myFolder;
+    }
 
     public void addMyList(String folderToSync) {
         l.lock();
@@ -91,6 +93,8 @@ public class FolderStruct {
 
         // debug
         //System.out.println("ADDED " + foldersFromIp.size() + "FILES");
+        for(MetaData l: foldersFromIp)
+            System.out.println("Precido do: " + l.getFilePath());
         l.unlock();
     }
 
@@ -112,6 +116,7 @@ public class FolderStruct {
                 }
                 else if (cmp == 0) {
                     found = true;
+                    toAdd.remove(mt);
                     // debug
                     // System.out.println("Res from remove " + toAdd.remove(mt));
                 }
