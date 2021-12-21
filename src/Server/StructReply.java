@@ -35,7 +35,7 @@ public class StructReply implements Runnable {
         FolderStruct fs = FolderStruct.getInstance();
         List<MetaData> metaDataPaths = fs.getMyFolder();
         byte[] data = new byte[0];
-        
+
         try {
             data = serialize(metaDataPaths);
         } catch (IOException e) {
