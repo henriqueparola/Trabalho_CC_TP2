@@ -13,13 +13,36 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class FolderStruct {
+
     private static FolderStruct single_instance = null;
+    // metaData from the files inside the folder that I want to sync
     private List<MetaData> myFolder = new ArrayList<>();
+    // name of the folder that I want to sync
     private String folderToSync;
+    // folder content the metaData from files that I want to request from another ip's to sync
     private Map<String, List<MetaData>> folder = new HashMap<>();
+    // same that before, but contains a boolean despite of a metaData. This boolean said if the file already is transfer to my computer
     private Map<String, List<Boolean>> folderState = new HashMap<>();
+    // map to true if the other ip will not request more things to me
+    private Map<String,Boolean> othersState = new HashMap<>();
     private Lock l = new ReentrantLock();
 
+    // OthersState methods
+    public void initOthersState(String[] ipsToSync){
+        for(String ipToSync: ipsToSync){
+            othersState.put(ipToSync,false);
+        }
+    }
+
+    public void changeOtherIpState(String ip){
+        othersState.replace(ip,true);
+    }
+
+    public boolean checkIfAllSendFin(){
+        return othersState.values().stream().allMatch(b -> b == true);
+    }
+
+    // MyFolder methods
     public List<MetaData> getMyFolder(){
         return myFolder;
     }
@@ -56,6 +79,7 @@ public class FolderStruct {
         }
     }
 
+    // Folder methods
     public void setStates() {
         l.lock();
         for (Map.Entry<String, List<MetaData>> entry : this.folder.entrySet()) {
@@ -78,8 +102,6 @@ public class FolderStruct {
         é necessário atualizar o folder (removendo o metadato da entrada) e atualizar o
         folderState(removendo da Lista da chave ipIt o indice j, que corresponde ao
         metadado removido)
-
-
          */
 
         updateMetaLists(this.myFolder, foldersFromIp);
@@ -93,8 +115,8 @@ public class FolderStruct {
 
         // debug
         //System.out.println("ADDED " + foldersFromIp.size() + "FILES");
-        for(MetaData l: foldersFromIp)
-            System.out.println("Precido do: " + l.getFilePath());
+        //for(MetaData l: foldersFromIp)
+        //    System.out.println("Precido do: " + l.getFilePath());
         l.unlock();
     }
 
@@ -138,17 +160,22 @@ public class FolderStruct {
     }
 
     public void changeState(String key, String fileName){
-        List<MetaData> list = folder.get(key);
-        int index = 0;
-        for(int i = 0; i < list.size(); i++){
-            if (list.get(i).getFilePath().equals(fileName)){
-                index = i;
-                break;
+        l.lock();
+        try {
+            List<MetaData> list = folder.get(key);
+            int index = 0;
+            for (int i = 0; i < list.size(); i++) {
+                if (list.get(i).getFilePath().equals(fileName)) {
+                    index = i;
+                    break;
+                }
             }
+            List<Boolean> listState = folderState.get(key);
+            listState.set(index, true);
+            folderState.put(key, listState);
+        }finally {
+            l.unlock();
         }
-        List<Boolean> listState = folderState.get(key);
-        listState.set(index,true);
-        folderState.put(key,listState);
     }
 
     public static FolderStruct getInstance() {
@@ -170,5 +197,17 @@ public class FolderStruct {
         }catch (IOException e){
         }
         return null;
+    }
+
+    public boolean checkIfFinToIp(String ip){
+        l.lock();
+        try {
+            if (folderState.get(ip).stream().allMatch(b -> b == true))
+                return true;
+            else
+                return false;
+        }finally {
+            l.unlock();
+        }
     }
 }
