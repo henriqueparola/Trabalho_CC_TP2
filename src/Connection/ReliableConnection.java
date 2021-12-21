@@ -6,10 +6,7 @@ import Security.RequestInterceptor;
 import javax.xml.crypto.Data;
 import java.awt.*;
 import java.io.*;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.*;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -18,6 +15,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static java.lang.Thread.getDefaultUncaughtExceptionHandler;
 import static java.lang.Thread.sleep;
 
 public class ReliableConnection {
@@ -27,6 +25,9 @@ public class ReliableConnection {
     public int peerPort;
     private int seq;
     private String key = "key";
+    private Window window = new Window(15);
+    private int nextSeqNum;
+    private int base;
 
     public ReliableConnection(int port,InetAddress inetPeer1, int portPeer1) throws SocketException {
         this.peerAddress = inetPeer1;
@@ -40,6 +41,8 @@ public class ReliableConnection {
         this.peerPort = portPeer1;
         this.seq = 0;
         this.socket = new DatagramSocket();
+        this.nextSeqNum = 0;
+        this.base = 0;
     }
 
     public ReliableConnection(int port) throws SocketException {
@@ -47,8 +50,13 @@ public class ReliableConnection {
         this.peerAddress = null;
         this.peerPort = -1;
         this.seq = 0;
+        this.nextSeqNum = 0;
+        this.base = 0;
     }
 
+    public void windowSend(byte[] data) {
+
+    }
     public void send(byte[] data) throws IOException {
         // Se data for maior que MTU é necessário fazer a divisão por vários pacotes
         // Como agora estou a fazer stop and wait preciso de receber um ack para cada pacote enviado
@@ -62,47 +70,60 @@ public class ReliableConnection {
         boolean received = false;
         // Máximas tentativas de timeout
         final int maxTries = 5;
+        final int windows = 3;
         // para saber o tamanho lido da stream
         int size = 0;
         ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<SecurityFrame> future;
-        Callable<SecurityFrame> callable = new Callable<SecurityFrame>() {
-            @Override
-            public SecurityFrame call() throws IOException {
-                SecurityFrame r = rdtRcvPckt();
-                if (Thread.interrupted()) {
-                    socket.setSoTimeout(1);
+        Future<Integer> future;
+
+        boolean flag = true;
+        Callable<Integer> callable = new WindowSend(this.window, this.socket, this);
+
+        int j = 0;
+        // Não esquecer de quando acabar o ciclo.
+        while(flag) {
+            int base = window.base;
+            // Encher janela com dados para enviar
+            for(int i = window.nextSeqNum; window.nextSeqNum - base < window.N && (size = dis.read(dataOut)) > 0; i++) {
+                byte[] packetOut = makeOut(size, dataOut, i);
+                window.addData(i, packetOut);
+            }
+
+            if (window.empty()) {
+               executor.shutdownNow();
+               break;
+            }
+            future = executor.submit(callable);
+            for (int i = base; i < window.nextSeqNum; i++) {
+                byte[] out = window.windowData.get(i-window.base);
+                if (out != null)
+                    udtSendPckt(out);
+
+            }
+
+
+
+            try {
+                Integer acked = future.get(50, TimeUnit.MILLISECONDS);
+
+                window.update(acked);
+                for(int i = 0; i < window.N; i++) {
+                    byte[] test = window.windowData.get(i);
+//                    if (test != null) {
+//                        System.out.println(test + "SIZE : " + test.length);
+//                    }
+//                    else System.out.println(test + "SIZE : 0");
                 }
-                return r;
-            }
-        };
 
-        while ((size = dis.read(dataOut)) > 0) {
-            while (!received) {
-                udtSendPckt(size, dataOut, this.seq);
-                future = executor.submit(callable);
-                try {
+                //Verificar com calma este if
 
-                    frameIn = future.get(25, TimeUnit.MILLISECONDS);
-                    dataFrame = ConnectionFrame.deserealize(frameIn.data);
-                    if (notCorrupt(frameIn) && isAck(dataFrame, this.seq + 1)) {
-                        received = true;
-                        this.seq++;
-                    }
-
-                } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                    future.cancel(true);
-                    socket.setSoTimeout(0);
-                }
-
+            } catch (InterruptedException | ExecutionException | TimeoutException e)  {
+                future.cancel(true);
+                socket.setSoTimeout(0);
             }
 
-            received = false;
-
-            if(size < MTU) {
-                executor.shutdownNow();
-            }
         }
+
         bais.close();
         dis.close();
     }
@@ -115,7 +136,7 @@ public class ReliableConnection {
         return frame.tag == seq && frame.dataLen == 0;
     }
 
-private boolean notCorrupt(SecurityFrame frame) {
+public boolean notCorrupt(SecurityFrame frame) {
     return CreatePassword.checkAuthenticated(this.key, frame.data, frame.hashMac );
 }
 
@@ -140,8 +161,15 @@ public byte[] makeOut(int size, byte[]data, int seq) throws IOException{
                                                     this.peerPort);
         socket.send(outPacket);
     }
+    public void udtSendPckt(byte[] data) throws IOException {
+        DatagramPacket outPacket = new DatagramPacket(data,
+                data.length,
+                this.peerAddress,
+                this.peerPort);
+        socket.send(outPacket);
+    }
 
-    private SecurityFrame rdtRcvPckt() throws IOException {
+    public SecurityFrame rdtRcvPckt() throws IOException, SocketTimeoutException {
         byte dataIn[] = new byte[SecurityFrame.MTU];
         DatagramPacket inPacket = new DatagramPacket(dataIn, dataIn.length);
         socket.receive(inPacket);
@@ -150,8 +178,9 @@ public byte[] makeOut(int size, byte[]data, int seq) throws IOException{
             this.peerAddress = inPacket.getAddress();
             this.peerPort = inPacket.getPort();
         }
-        while(!sameRecipient(inPacket.getAddress(), inPacket.getPort()))
+        while(!sameRecipient(inPacket.getAddress(), inPacket.getPort())) {
             socket.receive(inPacket);
+        }
 
         SecurityFrame inFrame = SecurityFrame.deserialize(inPacket.getData());
 
@@ -162,30 +191,53 @@ public byte[] makeOut(int size, byte[]data, int seq) throws IOException{
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos  = new DataOutputStream(new BufferedOutputStream(baos));
 
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<?> future;
+
+
         boolean flag = true;
         SecurityFrame securityFrame;
         ConnectionFrame inFrame;
 
         while (flag) {
-            securityFrame = rdtRcvPckt();
-            inFrame = ConnectionFrame.deserealize(securityFrame.data);
 
-            if (notCorrupt(securityFrame) && validSeq(inFrame)) {
-                if (inFrame.dataLen < this.MTU) flag = false;
-                dos.write(inFrame.data);
-                this.seq++;
+            socket.setSoTimeout(0);
+            for(int i = 0; i < window.N; i++) {
+                try {
+                    securityFrame = rdtRcvPckt();
+                    inFrame = ConnectionFrame.deserealize(securityFrame.data);
+                    if (notCorrupt(securityFrame))
+                        window.receive(inFrame.tag, inFrame.data);
+
+                    if (i == 0) socket.setSoTimeout(5);
+                    byte[] data;
+                    while((data = window.retrieve()) != null) {
+                        if (data.length < this.MTU)
+                            flag = false;
+                        dos.write(data);
+                    }
+                } catch (SocketTimeoutException e) {
+                }
+
+
+
+
             }
-
             sendAck();
+
+
         }
 
+        //Caso se queira suportar sends e receives alternados.
+        //Uma vez que o nextSeqNum só é utilizado nos métodos de send
+        window.nextSeqNum = window.base;
         baos.close();
         dos.close();
         return baos.toByteArray();
     }
 
     private void sendAck() throws IOException {
-        byte[] frameOut = makeOut(0, null, this.seq);
+        byte[] frameOut = makeOut(0, null, window.base);
         //ConnectionFrame ackFrame = new ConnectionFrame(this.seq, 0, null);
         //byte[] dataOut = ackFrame.serialize();
         DatagramPacket outPacket = new DatagramPacket(frameOut,
