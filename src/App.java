@@ -15,8 +15,8 @@ public class App {
         int startIp;
         String folderToSync;
 
+        ProtocolLogger2 p = ProtocolLogger2.getInstance();
         if (args[0].equals("--logs")){
-            ProtocolLogger2 p = ProtocolLogger2.getInstance();
             p.setActive();
             folderToSync = args[1];
             startIp = 2;
@@ -43,10 +43,21 @@ public class App {
         FolderStruct fd = FolderStruct.getInstance();
         fd.addMyList(folderToSync);
 
-        Thread tServer = new Thread(new Server(folderToSync));
+        Thread tServer = new Thread(new Server(ipsToSync,folderToSync));
         Thread tClient = new Thread(new Client(ipsToSync,folderToSync));
 
+        long start = System.currentTimeMillis();
         tServer.start();
         tClient.start();
+
+        try {
+            tServer.join(); // only finish with all of others ips will not send requests anymore
+            tClient.join(); // only finish when I will not request for anyone nothing more
+            long end = System.currentTimeMillis();
+            p.loggerInfo("sync complete - time: " + (end - start)/1000 + " seconds");
+            System.out.println( "> sync "+"\u001B[32m"+ "complete!" + "\u001B[0m" + " time: " + (end - start)/1000 + " seconds");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }
