@@ -96,9 +96,7 @@ public class ReliableConnection {
             future = executor.submit(callable);
             for (int i = base; i < window.nextSeqNum; i++) {
                 byte[] out = window.windowData.get(i-window.base);
-                if (out != null)
-                    udtSendPckt(out);
-
+                udtSendPckt(out);
             }
 
 
@@ -106,16 +104,8 @@ public class ReliableConnection {
             try {
                 Integer acked = future.get(50, TimeUnit.MILLISECONDS);
 
-                window.update(acked);
-                for(int i = 0; i < window.N; i++) {
-                    byte[] test = window.windowData.get(i);
-//                    if (test != null) {
-//                        System.out.println(test + "SIZE : " + test.length);
-//                    }
-//                    else System.out.println(test + "SIZE : 0");
-                }
-
-                //Verificar com calma este if
+                if (acked != window.base)
+                    window.update(acked);
 
             } catch (InterruptedException | ExecutionException | TimeoutException e)  {
                 future.cancel(true);
@@ -169,7 +159,7 @@ public byte[] makeOut(int size, byte[]data, int seq) throws IOException{
         socket.send(outPacket);
     }
 
-    public SecurityFrame rdtRcvPckt() throws IOException, SocketTimeoutException {
+    public SecurityFrame rdtRcvPckt() throws IOException {
         byte dataIn[] = new byte[SecurityFrame.MTU];
         DatagramPacket inPacket = new DatagramPacket(dataIn, dataIn.length);
         socket.receive(inPacket);
@@ -209,23 +199,20 @@ public byte[] makeOut(int size, byte[]data, int seq) throws IOException{
                     if (notCorrupt(securityFrame))
                         window.receive(inFrame.tag, inFrame.data);
 
-                    if (i == 0) socket.setSoTimeout(5);
+                    if (i == 0) socket.setSoTimeout(1);
                     byte[] data;
                     while((data = window.retrieve()) != null) {
-                        if (data.length < this.MTU)
+                        if (data.length < this.MTU) {
                             flag = false;
+                        }
                         dos.write(data);
                     }
                 } catch (SocketTimeoutException e) {
                 }
 
-
-
-
             }
+            socket.setSoTimeout(0);
             sendAck();
-
-
         }
 
         //Caso se queira suportar sends e receives alternados.
