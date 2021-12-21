@@ -44,7 +44,7 @@ public class FileReply implements Runnable{
 
                 byte[] data = new byte[bytesToRead];
                 while ((size = is.read(data)) != -1) {
-                    pl.loggerInfo("Enviando bloco + " + blocoFicheiro++ + " do ficheiro " + filePath + " para o " + destAdress);
+                    pl.loggerInfo("Enviando bloco " + blocoFicheiro++ + " do ficheiro " + filePath + " para o " + destAdress);
                     ProtocolFrame frame = new ProtocolFrame((byte) 0x2,size,data);
                     rb.send(frame.serialize());
                 }

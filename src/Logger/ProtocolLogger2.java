@@ -67,7 +67,7 @@ public class ProtocolLogger2 {
                 "table, th, td {\n" +
                 "  border:1px solid black;\n" +
                 "}\n" +
-                "</style><h2>Registo de Logs</h2><br><table style=\"width:100%\"><tr><th>Tipo</th><th>Horário</th><th>Mensagem</th></tr>";
+                "</style><h2>Registo de Logs</h2><br><table style=\"width:100%\"><tr><th>Tipo</th><th>Horario</th><th>Mensagem</th></tr>";
 
         try {
             BufferedReader rd = new BufferedReader(new FileReader("log.txt"));

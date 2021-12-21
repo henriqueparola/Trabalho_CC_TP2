@@ -12,24 +12,28 @@ import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 
 public class ProtocolDemultiplexer implements Runnable {
+    String[] ipsToSync;
     String folderToSync;
 
-    public ProtocolDemultiplexer(String folderToSync) {
+    public ProtocolDemultiplexer(String[] ipsToSync,String folderToSync) {
+        this.ipsToSync = ipsToSync;
         this.folderToSync = folderToSync;
     }
 
     @Override
     public void run() {
+        FolderStruct fs = FolderStruct.getInstance();
+        fs.initOthersState(ipsToSync);
         ProtocolLogger2 pl = ProtocolLogger2.getInstance();
+
         boolean running = true;
         try {
-            while (running) {
+            while (!fs.checkIfAllSendFin()) {
                 ReliableConnection rb = new ReliableConnection(5000);
                 byte[] data = rb.receive();
                 ProtocolFrame pf = ProtocolFrame.deserialize(data);
                 switch (pf.opcode){
                     case 0x0:
-                        //System.out.println("SYNC");
                         pl.loggerInfo("SYNC recebido do " + rb.peerAddress);
                         Thread t = new Thread(new StructReply(
                                 rb.peerAddress,
@@ -39,7 +43,6 @@ public class ProtocolDemultiplexer implements Runnable {
                         t.start();
                         break;
                     case 0x1:
-                        //System.out.println("READ");
                         pl.loggerInfo("READ recebido do " + rb.peerAddress);
                         Thread t2 = new Thread(new FileReply(
                                 rb.peerAddress,
@@ -48,6 +51,10 @@ public class ProtocolDemultiplexer implements Runnable {
                                 new String(pf.data, StandardCharsets.UTF_8)
                         ));
                         t2.start();
+                        break;
+                    case 0x3:
+                        pl.loggerInfo("FIN recebido do " + rb.peerAddress);
+                        fs.changeOtherIpState(rb.peerAddress.getHostAddress());
                         break;
                 }
 

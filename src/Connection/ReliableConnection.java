@@ -1,5 +1,6 @@
 package Connection;
 
+import Security.Authentication;
 import Security.CreatePassword;
 import Security.RequestInterceptor;
 
@@ -24,10 +25,10 @@ public class ReliableConnection {
     public InetAddress peerAddress;
     public int peerPort;
     private int seq;
-    private String key = "key";
     private Window window = new Window(17);
     private int nextSeqNum;
     private int base;
+    private String key = Authentication.getInstance().getPasswordInsert();
 
     public ReliableConnection(int port,InetAddress inetPeer1, int portPeer1) throws SocketException {
         this.peerAddress = inetPeer1;

@@ -1,5 +1,6 @@
 package Server;
 
+import Client.FolderStruct;
 import Client.MetaData;
 import Connection.ReliableConnection;
 import Logger.ProtocolLogger;
@@ -31,20 +32,10 @@ public class StructReply implements Runnable {
     @Override
     public void run() {
         ProtocolLogger2 pl = ProtocolLogger2.getInstance();
-        Path path = Paths.get("./" + folderToSync);
-
-        Stream<Path> walk = null;
-        try {
-            walk = Files.walk(path);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        List<Path> paths;
-        paths = walk.filter(Files::isRegularFile).collect(Collectors.toList());
-        List<MetaData> metaDataPaths = paths.stream().map(p -> getMetaData(p)).toList();
-
+        FolderStruct fs = FolderStruct.getInstance();
+        List<MetaData> metaDataPaths = fs.getMyFolder();
         byte[] data = new byte[0];
+
         try {
             data = serialize(metaDataPaths);
         } catch (IOException e) {
