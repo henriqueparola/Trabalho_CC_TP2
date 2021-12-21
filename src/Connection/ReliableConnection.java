@@ -25,7 +25,7 @@ public class ReliableConnection {
     public int peerPort;
     private int seq;
     private String key = "key";
-    private Window window = new Window(15);
+    private Window window = new Window(17);
     private int nextSeqNum;
     private int base;
 
