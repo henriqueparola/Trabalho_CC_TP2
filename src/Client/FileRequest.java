@@ -50,7 +50,7 @@ public class FileRequest implements Runnable{
             ProtocolFrame pf = null;
 
             int blocoFicheiro = 0;
-            int len = maxBlockSize;
+            int len = 0;
             if (fileMetaData.getSize() > 0)  {
                 do {
                     byte[] dataReceive = rb2.receive();
@@ -58,9 +58,9 @@ public class FileRequest implements Runnable{
                     pf = ProtocolFrame.deserialize(dataReceive);
                     os.write(pf.data);
                     pl.loggerInfo("Recebido bloco " + blocoFicheiro++ + " do ficheiro " + fileMetaData.getFilePath());
-                    len = pf.datLength;
+                    len += pf.datLength;
 
-                } while(len == maxBlockSize);
+                } while(len < fileMetaData.size);
             }
 
             file.setLastModified(fileMetaData.getModified());

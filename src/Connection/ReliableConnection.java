@@ -103,7 +103,7 @@ public class ReliableConnection {
 
 
             try {
-                Integer acked = future.get(50, TimeUnit.MILLISECONDS);
+                Integer acked = future.get(100, TimeUnit.MILLISECONDS);
 
                 if (acked != window.base)
                     window.update(acked);
@@ -200,7 +200,7 @@ public byte[] makeOut(int size, byte[]data, int seq) throws IOException{
                     if (notCorrupt(securityFrame))
                         window.receive(inFrame.tag, inFrame.data);
 
-                    if (i == 0) socket.setSoTimeout(1);
+                    if (i == 0) socket.setSoTimeout(3);
                     byte[] data;
                     while((data = window.retrieve()) != null) {
                         if (data.length < this.MTU) {
