@@ -7,7 +7,7 @@ public class ConnectionFrame {
     public final int tag;
     public final int dataLen;
     public final byte[] data;
-    public static final int MTU = 1308;
+    public static final int MTU = 1426;
 
 
     public ConnectionFrame(int tag, int dataLen, byte[] data) {

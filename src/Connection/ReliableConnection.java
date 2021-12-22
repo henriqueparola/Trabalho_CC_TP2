@@ -21,7 +21,7 @@ import static java.lang.Thread.sleep;
 
 public class ReliableConnection {
     public DatagramSocket socket;
-    private final int MTU = 1300;
+    private final int MTU = 1418;
     public InetAddress peerAddress;
     public int peerPort;
     private int seq;
