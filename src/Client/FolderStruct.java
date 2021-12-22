@@ -28,6 +28,7 @@ public class FolderStruct {
     private Lock l = new ReentrantLock();
 
     public long initTime;
+    public long endDischargeTime;
 
     // OthersState methods
     public void initOthersState(String[] ipsToSync){

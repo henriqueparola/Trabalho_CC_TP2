@@ -52,15 +52,15 @@ public class Client implements Runnable{
 
 
         /* Criação da estrutura de pastas */
-        folderStruct.createFolderStruct(folderToSync);
-        folderStruct.initTime = System.currentTimeMillis();
 
+        folderStruct.createFolderStruct(folderToSync);
         /*Pedido 2 - Conteúdos*/
         Integer numOfFilesToRequest = folderStruct.getStruct().values().stream().mapToInt(List::size).sum();
         Thread[] frthreads = new Thread[numOfFilesToRequest];
         ProtocolLogger2 pl = ProtocolLogger2.getInstance();
+
         i = 0;
-        int aux = i;
+        folderStruct.initTime = System.currentTimeMillis();
         for (Map.Entry<String, List<MetaData>> entry : folderStruct.getStruct().entrySet()) {
             for (MetaData metadata : entry.getValue()){
                 frthreads[i] = new Thread(new FileRequest(entry.getKey(),metadata,folderToSync));
@@ -93,6 +93,8 @@ public class Client implements Runnable{
             for (Thread frthread : frthreads) {
                 frthread.join();
             }
+
+            folderStruct.endDischargeTime = System.currentTimeMillis();
         }catch (InterruptedException e){
             // TODO
         }

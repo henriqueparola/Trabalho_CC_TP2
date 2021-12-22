@@ -8,6 +8,8 @@ import Client.FolderStruct;
 import java.io.*;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -54,9 +56,14 @@ public class App {
             ipsToSync[i] = args[startIp + 1 + i];
         }
 
+        // check if folder exists (if not exists, create)
+        if (!Files.exists(Path.of(folderToSync))){
+            Files.createDirectories(Path.of(folderToSync));
+        }
+
         // Get credencials
         Scanner sc= new Scanner(System.in); //System.in is a standard input stream.
-        System.out.println("> senha: ");
+        System.out.println("\u001B[33m" + "> " + "\u001B[0m" + "senha: ");
         String str= sc.nextLine(); //reads string
         Authentication auth = Authentication.getInstance();
         auth.setPasswordInsert(str);
@@ -73,38 +80,40 @@ public class App {
         try {
             tServer.join(); // only finish with all of others ips will not send requests anymore
             tClient.join(); // only finish when I will not request for anyone nothing more
-            long end = System.currentTimeMillis();
-            long time = end - fd.initTime;
+            long timeSync = System.currentTimeMillis() - fd.initTime;
+            long timeDischarge = fd.endDischargeTime - fd.initTime;
             double totalIdealTime = 0;
             long totalFileSize = 0;
 
-            p.loggerInfo("sync complete - time: " + time + " ms");
-
             for (String ip : ipsToSync) {
-                System.out.println("LOCAL IP : " + myIp);
+                //System.out.println("LOCAL IP : " + myIp);
                 long band = getBand(myIp, ip);
-                System.out.println("BAND : " + band);
+                //System.out.println("BAND : " + band);
                 long filesSize = fd.getFilesSizeByIp(ip) * 8;
                 totalFileSize += filesSize;
-                System.out.println("FILES_SIZE : " + filesSize);
+                //System.out.println("FILES_SIZE : " + filesSize);
                 totalIdealTime += ((double)filesSize/(double)band);
             }
 
-            System.out.println("Total File Size " + totalFileSize);
-            System.out.println("Total Total Ideal Time " + totalIdealTime);
+            //System.out.println("Total File Size " + totalFileSize);e);
 
-            double bpsReal = totalFileSize / ((double) time / 1000);
+            double bpsReal = totalFileSize / ((double) timeDischarge / 1000);
             double bpsIdeal = (totalIdealTime == 0)? Double.MAX_VALUE : totalFileSize / totalIdealTime;
             double efective = (bpsIdeal == 0)? Double.MAX_VALUE : bpsReal/bpsIdeal;
-            System.out.println("Real Bps: " + bpsReal);
-            System.out.println("Ideal Bps: " + bpsIdeal);
-            System.out.println("Efficiency: " + efective);
-            p.loggerInfo("Real Bps: " + bpsReal);
+
+            System.out.println("\u001B[33m" + "> " + "\u001B[0m" + "sync " + "\u001B[32m"+ "complete!" + "\u001B[0m" + " time: " + timeSync + " ms");
+            System.out.println("\u001B[33m" + "> " + "\u001B[0m" + "Ideal discharge time: " + totalIdealTime + " ms");
+            System.out.println("\u001B[33m" + "> " + "\u001B[0m" + "Ideal Bps: " + bpsIdeal + " (bits/seg)");
+            System.out.println("\u001B[33m" + "> " + "\u001B[0m" + "Real discharge time: " + timeDischarge + " ms");
+            System.out.println("\u001B[33m" + "> " + "\u001B[0m" + "Real Bps: " + bpsReal + " (bits/seg)");
+            System.out.println("\u001B[33m" + "> " + "\u001B[0m" + "Efficiency: " + efective);
+
             p.loggerInfo("Ideal Bps: " + bpsIdeal);
+            p.loggerInfo("Real Bps: " + bpsReal);
+            p.loggerInfo("Real discharge time: " + timeDischarge);
             p.loggerInfo("Efficiency: " + efective);
+            p.loggerInfo("sync complete - time: " + timeSync + " ms");
 
-
-            System.out.println( "> sync "+"\u001B[32m"+ "complete!" + "\u001B[0m" + " time: " + time + " ms");
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
