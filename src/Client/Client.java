@@ -53,6 +53,7 @@ public class Client implements Runnable{
 
         /* Criação da estrutura de pastas */
         folderStruct.createFolderStruct(folderToSync);
+        folderStruct.initTime = System.currentTimeMillis();
 
         /*Pedido 2 - Conteúdos*/
         Integer numOfFilesToRequest = folderStruct.getStruct().values().stream().mapToInt(List::size).sum();

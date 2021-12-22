@@ -27,6 +27,8 @@ public class FolderStruct {
     private Map<String,Boolean> othersState = new HashMap<>();
     private Lock l = new ReentrantLock();
 
+    public long initTime;
+
     // OthersState methods
     public void initOthersState(String[] ipsToSync){
         for(String ipToSync: ipsToSync){
@@ -210,4 +212,17 @@ public class FolderStruct {
             l.unlock();
         }
     }
+
+    public int getFilesSizeByIp(String ip) {
+        int r = 0;
+        List<MetaData> ltm = folder.get(ip);
+        if (ltm != null) {
+            for(MetaData mtd : ltm)
+                r += mtd.getSize();
+        }
+
+        return r;
+    }
+
+
 }
