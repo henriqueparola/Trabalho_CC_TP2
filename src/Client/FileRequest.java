@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
+import java.util.concurrent.TimeoutException;
 
 public class FileRequest implements Runnable{
     private String ipToSync;
@@ -92,6 +93,8 @@ public class FileRequest implements Runnable{
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (TimeoutException e) {
+            System.out.println("Send deu Timeout. Undefined Behaviour.");
         }
     }
 }
