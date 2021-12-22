@@ -8,6 +8,7 @@ import Multiplex.ProtocolFrame;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.concurrent.TimeoutException;
 
 public class FileReply implements Runnable{
     private InetAddress destAdress;
@@ -56,6 +57,8 @@ public class FileReply implements Runnable{
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (TimeoutException e) {
+            System.out.println("Send deu Timeout. Undefined Behaviour");
         }
     }
 }

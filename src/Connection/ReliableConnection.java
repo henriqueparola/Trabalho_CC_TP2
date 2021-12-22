@@ -58,7 +58,7 @@ public class ReliableConnection {
     public void windowSend(byte[] data) {
 
     }
-    public void send(byte[] data) throws IOException {
+    public void send(byte[] data) throws IOException, TimeoutException {
         // Se data for maior que MTU é necessário fazer a divisão por vários pacotes
         // Como agora estou a fazer stop and wait preciso de receber um ack para cada pacote enviado
         ByteArrayInputStream bais = new ByteArrayInputStream(data);
@@ -70,8 +70,7 @@ public class ReliableConnection {
         // Para saber se se pode saltar o ciclo de tentativas
         boolean received = false;
         // Máximas tentativas de timeout
-        final int maxTries = 5;
-        final int windows = 3;
+        final int maxTries = 300;
         // para saber o tamanho lido da stream
         int size = 0;
         ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -80,8 +79,8 @@ public class ReliableConnection {
         boolean flag = true;
         Callable<Integer> callable = new WindowSend(this.window, this.socket, this);
 
-        int j = 0;
-        // Não esquecer de quando acabar o ciclo.
+        int tries = 0;
+
         while(flag) {
             int base = window.base;
             // Encher janela com dados para enviar
@@ -105,13 +104,19 @@ public class ReliableConnection {
             try {
                 Integer acked = future.get(100, TimeUnit.MILLISECONDS);
 
-                if (acked != window.base)
+                if (acked != window.base) {
                     window.update(acked);
+                    tries = 0;
+                }
 
             } catch (InterruptedException | ExecutionException | TimeoutException e)  {
+                tries++;
                 future.cancel(true);
                 socket.setSoTimeout(0);
             }
+
+            if (tries >= maxTries)
+                throw new TimeoutException();
 
         }
 

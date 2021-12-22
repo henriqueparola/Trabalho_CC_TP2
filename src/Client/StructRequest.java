@@ -9,6 +9,7 @@ import java.net.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 public class StructRequest implements Runnable{
     private String ipToSync;
@@ -45,6 +46,8 @@ public class StructRequest implements Runnable{
             ex.printStackTrace();
         } catch (IOException ex) {
             ex.printStackTrace();
+        } catch (TimeoutException e) {
+            System.out.println("Send deu Timeout. Undefined Behaviour.");
         }
     }
 

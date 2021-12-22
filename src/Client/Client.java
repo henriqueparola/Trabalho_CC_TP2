@@ -11,6 +11,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 /** Represents an Client.
  * @author Henrique Costa
@@ -84,7 +85,10 @@ public class Client implements Runnable{
                     e.printStackTrace();
                 } catch (IOException e) {
                     e.printStackTrace();
+                } catch (TimeoutException e) {
+                    System.out.println("Send deu Timeout. Undefined Behaviour.");
                 }
+
             }
         }
 
