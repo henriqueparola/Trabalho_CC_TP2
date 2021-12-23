@@ -36,22 +36,37 @@ public class FolderStruct {
 
     // OthersState methods
     public void initOthersState(String[] ipsToSync){
+        l.lock();
         for(String ipToSync: ipsToSync){
             othersState.put(ipToSync,false);
         }
+        l.unlock();
     }
 
     public void changeOtherIpState(String ip){
+        l.lock();
         othersState.replace(ip,true);
+        l.unlock();
     }
 
-    public boolean checkIfAllSendFin(){
-        return othersState.values().stream().allMatch(b -> b == true);
+    public boolean checkIfAllSendFin() {
+        l.lock();
+        try {
+            return othersState.values().stream().allMatch(b -> b == true);
+        } finally {
+            l.unlock();
+        }
     }
+
 
     // MyFolder methods
     public List<MetaData> getMyFolder(){
-        return myFolder;
+        l.lock();
+        try {
+            return myFolder;
+        } finally {
+            l.unlock();
+        }
     }
 
     public void addMyList(String folderToSync) {
@@ -74,6 +89,7 @@ public class FolderStruct {
 
     public void createFolderStruct(String folderToSync) {
 
+        l.lock();
         for (Map.Entry<String, List<MetaData>> entry : folder.entrySet()) {
             for (MetaData metadata : entry.getValue()){
                 int lastSeparator = metadata.getFilePath().lastIndexOf("/");
@@ -84,6 +100,7 @@ public class FolderStruct {
                 }
             }
         }
+        l.unlock();
     }
 
     // Folder methods
@@ -155,11 +172,21 @@ public class FolderStruct {
     }
 
     public Map<String,List<MetaData>> getStruct(){
-        return folder;
+        l.lock();
+        try {
+            return folder;
+        } finally {
+            l.unlock();
+        }
     }
 
     public Map<String,List<Boolean>> getStructState(){
-        return folderState;
+        l.lock();
+        try {
+            return folderState;
+        } finally {
+            l.unlock();
+        }
     }
 
     public String getFileName(String key, int index) {
@@ -193,6 +220,7 @@ public class FolderStruct {
     }
 
     private MetaData getMetaData(Path path){
+        l.lock();
         try {
             BasicFileAttributes attr = Files.readAttributes(path, BasicFileAttributes.class);
             return new MetaData(
@@ -202,6 +230,8 @@ public class FolderStruct {
                     attr.lastModifiedTime().toMillis()
             );
         }catch (IOException e){
+        } finally {
+            l.unlock();
         }
         return null;
     }
@@ -219,14 +249,20 @@ public class FolderStruct {
     }
 
     public int getFilesSizeByIp(String ip) {
-        int r = 0;
-        List<MetaData> ltm = folder.get(ip);
-        if (ltm != null) {
-            for(MetaData mtd : ltm)
-                r += mtd.getSize();
+        l.lock();
+        try {
+            int r = 0;
+            List<MetaData> ltm = folder.get(ip);
+            if (ltm != null) {
+                for(MetaData mtd : ltm)
+                    r += mtd.getSize();
+            }
+
+            return r;
+        } finally {
+            l.unlock();
         }
 
-        return r;
     }
 
 
