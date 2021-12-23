@@ -18,6 +18,7 @@ public class App {
     private static Map<Map.Entry<String, String>, Integer> bandwitdth = new HashMap<>() {
         {put(Map.entry("10.2.2.1", "10.3.3.1"), 1 * 1000 * 1000 * 1000);
          put(Map.entry("10.2.2.1", "10.4.4.1"), 100 * 1000 * 1000);
+         put(Map.entry("10.3.3.1", "10.4.4.1"), 100 * 1000 * 1000);
         }
     };
 
