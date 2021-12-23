@@ -60,7 +60,7 @@ public class FileReply implements Runnable{
         } catch (IOException e) {
             e.printStackTrace();
         } catch (TimeoutException e) {
-            //System.out.println("Send deu Timeout. Undefined Behaviour (file reply)");
+            //System.out.println("Timeout file reply");
         }
     }
 }

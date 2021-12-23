@@ -57,7 +57,7 @@ public class StructReply implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         } catch (TimeoutException e) {
-            //System.out.println("Send deu Timeout. Undefined behaviour. (struct reply)");
+            //System.out.println("Struct reply");
         }
     }
     /*
