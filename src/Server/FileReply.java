@@ -41,24 +41,26 @@ public class FileReply implements Runnable{
             int blocoFicheiro = 0;
             int size;
 
-            if (file.length() > 0) {
+            try {
+                if (file.length() > 0) {
 
-                byte[] data = new byte[bytesToRead];
-                while ((size = is.read(data)) != -1) {
-                    pl.loggerInfo("Enviando bloco " + blocoFicheiro++ + " do ficheiro " + filePath + " para o " + destAdress);
-                    ProtocolFrame frame = new ProtocolFrame((byte) 0x2,size,data);
-                    rb.send(frame.serialize());
+                    byte[] data = new byte[bytesToRead];
+                    while ((size = is.read(data)) != -1) {
+                        pl.loggerInfo("Enviando bloco " + blocoFicheiro++ + " do ficheiro " + filePath + " para o " + destAdress);
+                        ProtocolFrame frame = new ProtocolFrame((byte) 0x2, size, data);
+                        rb.send(frame.serialize());
+                    }
                 }
+            }finally {
+                rb.close();
+                is.close();
             }
-
-
-            is.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         } catch (TimeoutException e) {
-            System.out.println("Send deu Timeout. Undefined Behaviour");
+            //System.out.println("Send deu Timeout. Undefined Behaviour (file reply)");
         }
     }
 }

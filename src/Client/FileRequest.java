@@ -38,10 +38,14 @@ public class FileRequest implements Runnable{
             byte[] data = fileMetaData.getFilePath().getBytes(StandardCharsets.UTF_8);
             ProtocolFrame pf2 = new ProtocolFrame((byte) 0x1, data.length, data);
             pl.loggerInfo("Pedindo ficheiro " + fileMetaData.getFilePath() + " ao " + ipToSync);
-            rb.send(pf2.serialize());
 
-            int port = rb.socket.getLocalPort();
-            rb.close();
+            int port;
+            try {
+                rb.send(pf2.serialize());
+                port = rb.socket.getLocalPort();
+            }finally {
+                rb.close();
+            }
 
             ReliableConnection rb2 = new ReliableConnection(port);
             File file = new File(folderToSync + "/" + fileMetaData.getFilePath());
@@ -83,8 +87,12 @@ public class FileRequest implements Runnable{
                 ReliableConnection rb3 = new ReliableConnection(InetAddress.getByName(ipToSync), 5000);
                 ProtocolFrame pf3 = new ProtocolFrame((byte) 0x3, 0, null);
                 pl.loggerInfo("Enviando FIN ao " + ipToSync);
-                rb3.send(pf3.serialize());
-                rb3.close();
+
+                try {
+                    rb3.send(pf3.serialize());
+                }finally {
+                    rb3.close();
+                }
             }
 
         } catch (SocketException e) {
@@ -94,7 +102,7 @@ public class FileRequest implements Runnable{
         } catch (IOException e) {
             e.printStackTrace();
         } catch (TimeoutException e) {
-            System.out.println("Send deu Timeout. Undefined Behaviour.");
+            //System.out.println("Send deu Timeout. Undefined Behaviour. (file request)");
         }
     }
 }

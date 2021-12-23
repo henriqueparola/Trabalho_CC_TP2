@@ -86,7 +86,7 @@ public class Client implements Runnable{
                 } catch (IOException e) {
                     e.printStackTrace();
                 } catch (TimeoutException e) {
-                    System.out.println("Send deu Timeout. Undefined Behaviour.");
+                    //System.out.println("Send deu Timeout. Undefined Behaviour.");
                 }
 
             }

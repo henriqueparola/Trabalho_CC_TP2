@@ -47,13 +47,17 @@ public class StructReply implements Runnable {
             ReliableConnection rb = new ReliableConnection(this.destAdress,this.destPort);
             ProtocolFrame pf = new ProtocolFrame((byte)0x2,data.length,data);
             pl.loggerInfo("Enviando estrutura de pastas para o " + destAdress);
-            rb.send(pf.serialize());
+            try{
+                rb.send(pf.serialize());
+            }finally {
+                rb.close();
+            }
         } catch (SocketException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         } catch (TimeoutException e) {
-            System.out.println("Send deu Timeout. Undefined behaviour.");
+            //System.out.println("Send deu Timeout. Undefined behaviour. (struct reply)");
         }
     }
     /*

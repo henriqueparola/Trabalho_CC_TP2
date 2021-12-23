@@ -2,6 +2,7 @@ package Client;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,6 +22,8 @@ public class FolderStruct {
     private String folderToSync;
     // folder content the metaData from files that I want to request from another ip's to sync
     private Map<String, List<MetaData>> folder = new HashMap<>();
+    // contains ip's that already made a syncRequest
+    public Set<String> syncRequest = new HashSet<>();
     // same that before, but contains a boolean despite of a metaData. This boolean said if the file already is transfer to my computer
     private Map<String, List<Boolean>> folderState = new HashMap<>();
     // map to true if the other ip will not request more things to me
@@ -29,6 +32,7 @@ public class FolderStruct {
 
     public long initTime;
     public long endDischargeTime;
+    public ServerSocket httpSocket;
 
     // OthersState methods
     public void initOthersState(String[] ipsToSync){

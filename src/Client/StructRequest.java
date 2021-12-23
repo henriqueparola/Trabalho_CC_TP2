@@ -27,10 +27,13 @@ public class StructRequest implements Runnable{
             ProtocolFrame pf2 = new ProtocolFrame((byte) 0x0,0,null);
 
             pl.loggerInfo("Requisitando estrutura de pastas do " + ipToSync);
-            rb.send(pf2.serialize());
-
-            int port = rb.socket.getLocalPort();
-            rb.close();
+            int port;
+            try {
+                rb.send(pf2.serialize());
+                port = rb.socket.getLocalPort();
+            }finally {
+                rb.close();
+            }
 
             ReliableConnection rb2 = new ReliableConnection(port);
             byte[] data = rb2.receive();
@@ -40,6 +43,7 @@ public class StructRequest implements Runnable{
             List<MetaData> list = deserialize(pf.data);
 
             folderStruct.addList(ipToSync,list);
+            rb2.close();
         } catch (SocketException ex) {
             ex.printStackTrace();
         } catch (UnknownHostException ex) {
@@ -47,7 +51,7 @@ public class StructRequest implements Runnable{
         } catch (IOException ex) {
             ex.printStackTrace();
         } catch (TimeoutException e) {
-            System.out.println("Send deu Timeout. Undefined Behaviour.");
+            //System.out.println("Send deu Timeout. Undefined Behaviour. (struct request)");
         }
     }
 
