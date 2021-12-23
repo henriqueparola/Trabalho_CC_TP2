@@ -32,7 +32,7 @@ public class FolderStruct {
 
     public long initTime;
     public long endDischargeTime;
-    public ServerSocket httpSocket;
+    //public ServerSocket httpSocket;
 
     // OthersState methods
     public void initOthersState(String[] ipsToSync){

@@ -51,7 +51,7 @@ public class ProtocolLogger2 {
         }finally {
             lock.unlock();
         }
-        System.out.println(strSout);
+        //System.out.println(strSout);
     }
 
     public static ProtocolLogger2 getInstance() {
