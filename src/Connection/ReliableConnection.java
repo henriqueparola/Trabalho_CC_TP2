@@ -115,8 +115,8 @@ public class ReliableConnection {
                 socket.setSoTimeout(0);
             }
 
-            if (tries >= maxTries)
-                throw new TimeoutException();
+            //if (tries >= maxTries)
+            //    throw new TimeoutException();
 
         }
 
