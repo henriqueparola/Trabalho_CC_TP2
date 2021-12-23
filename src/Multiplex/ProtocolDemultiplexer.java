@@ -34,13 +34,16 @@ public class ProtocolDemultiplexer implements Runnable {
                 ProtocolFrame pf = ProtocolFrame.deserialize(data);
                 switch (pf.opcode){
                     case 0x0:
-                        pl.loggerInfo("SYNC recebido do " + rb.peerAddress);
-                        Thread t = new Thread(new StructReply(
-                                rb.peerAddress,
-                                rb.peerPort,
-                                folderToSync
-                        ));
-                        t.start();
+                        if(!fs.syncRequest.contains(rb.peerAddress.getHostAddress())) {
+                            fs.syncRequest.add(rb.peerAddress.getHostAddress());
+                            pl.loggerInfo("SYNC recebido do " + rb.peerAddress);
+                            Thread t = new Thread(new StructReply(
+                                    rb.peerAddress,
+                                    rb.peerPort,
+                                    folderToSync
+                            ));
+                            t.start();
+                        }
                         break;
                     case 0x1:
                         pl.loggerInfo("READ recebido do " + rb.peerAddress);
